@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<title>Welcome to uBOL-Expanded</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #ffffff;
+    --surface: #f4f4f5;
+    --border:  #e4e4e7;
+    --text:    #18181b;
+    --muted:   #71717a;
+    --accent:  #2563eb;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:      #09090b;
+      --surface: #18181b;
+      --border:  #27272a;
+      --text:    #fafafa;
+      --muted:   #a1a1aa;
+      --accent:  #60a5fa;
+    }
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    padding: 3rem 1.5rem;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  h2 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+
+  p { margin-bottom: 0.75rem; color: var(--text); }
+
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { opacity: 0.8; }
+
+  ul { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  li { margin-bottom: 0.25rem; }
+
+  .badge {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.8rem;
+    font-family: monospace;
+    color: var(--muted);
+  }
+
+  footer {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Welcome to uBOL-Expanded</h1>
+  <p><em>An unofficial fork of <a href="https://github.com/uBlockOrigin/uBOL-home" target="_blank">uBlock Origin Lite</a> with additional filter lists.</em></p>
+</header>
+
+<main>
+  <h2>What's different</h2>
+  <p>This build includes the following extra filter lists on top of standard uBO Lite:</p>
+  <ul>
+    <li><strong>AdGuard Base filter</strong> — additional ad blocking beyond EasyList</li>
+    <li><strong>AdGuard Tracking Protection</strong> — extended tracker blocking (opt-in)</li>
+    <li><strong>AdGuard Annoyances</strong> — cookie notices, popups, banners (opt-in)</li>
+  </ul>
+  <p>All other features and filter lists are inherited directly from uBO Lite.</p>
+
+  <h2>Not affiliated</h2>
+  <p>
+    This extension is <strong>not affiliated with, endorsed by, or supported by</strong> the uBlock Origin project,
+    Raymond Hill, or AdGuard. It is an independent fork maintained separately.
+  </p>
+  <p>
+    For issues specific to this fork, please open an issue on the
+    <a href="https://github.com/cudios-dev/uBOL-Expanded" target="_blank">uBOL-Expanded repository</a>.
+    For upstream uBO Lite issues, use the
+    <a href="https://github.com/uBlockOrigin/uBOL-home/issues" target="_blank">official issue tracker</a>.
+  </p>
+
+  <h2>Getting started</h2>
+  <p>Open the dashboard by clicking the <span class="badge">⚙</span> icon in the popup to manage filter lists and settings.</p>
+  <p>
+    By default only <strong>AdGuard Base filter</strong> is enabled alongside the standard uBO Lite lists.
+    You can enable Tracking Protection and Annoyances from the <em>Filter lists</em> tab.
+  </p>
+</main>
+
+<footer>
+  <p>Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3</a>.
+  Based on <a href="https://github.com/uBlockOrigin/uBOL-home" target="_blank">uBO Lite</a> by Raymond Hill.</p>
+</footer>
+
+</body>
+</html>

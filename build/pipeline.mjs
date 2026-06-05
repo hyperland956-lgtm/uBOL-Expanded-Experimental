@@ -218,43 +218,92 @@ function patchFilterListsJs(outDir) {
 }
 
 // Apply patches/ directory onto an extension output dir.
-// Special handling:
-//   *.patch.json  → merged into the matching *.json (not replaced)
-//   js/ruleset-exclusive.js → template token __EXCLUSIVE_PAIRS__ replaced with live config
+// Special file handling conventions:
+//   *.patch.json        → keys merged into matching *.json (original wins on missing keys)
+//   *.inject-after.js   → content appended to matching js/* file in outDir
+//   css/*.css           → copied + <link> auto-injected into popup.html
+//   js/ruleset-exclusive.js → __EXCLUSIVE_PAIRS__ token replaced, <script> injected into dashboard.html
+//   welcome.html        → copied + added to manifest web_accessible_resources
+//   icons/              → reference-only folder, skipped
 function applyPatches(outDir) {
   const exclusivePairsJson = JSON.stringify(OVERRIDES.exclusivePairs);
 
-  function processDir(srcDir, destDir) {
+  function processDir(srcDir, destDir, relDir = '') {
     for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
-      const src  = path.join(srcDir,  entry.name);
-      const dest = path.join(destDir, entry.name);
+      const src     = path.join(srcDir, entry.name);
+      const dest    = path.join(destDir, entry.name);
+      const relPath = relDir ? `${relDir}/${entry.name}` : entry.name;
 
       if (entry.isDirectory()) {
-        if (entry.name === 'icons') continue; // icons/ is reference-only, not auto-applied
-        processDir(src, dest);
+        if (entry.name === 'icons') continue;
+        processDir(src, dest, relPath);
         continue;
       }
 
+      // *.patch.json → merge into matching *.json
       if (entry.name.endsWith('.patch.json')) {
         const targetPath = dest.replace(/\.patch\.json$/, '.json');
-        if (!fs.existsSync(targetPath)) { fs.mkdirSync(path.dirname(targetPath), { recursive: true }); }
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
         const original = fs.existsSync(targetPath) ? JSON.parse(fs.readFileSync(targetPath, 'utf8')) : {};
-        const patch = JSON.parse(fs.readFileSync(src, 'utf8'));
+        const patch    = JSON.parse(fs.readFileSync(src, 'utf8'));
         fs.writeFileSync(targetPath, JSON.stringify({ ...original, ...patch }, null, 2) + '\n');
         continue;
       }
 
+      // *.inject-after.js → append to matching js file in outDir
+      if (entry.name.endsWith('.inject-after.js')) {
+        const baseName  = entry.name.replace('.inject-after.js', '.js');
+        const targetJs  = path.join(outDir, 'js', baseName);
+        if (fs.existsSync(targetJs)) {
+          fs.appendFileSync(targetJs, '\n' + fs.readFileSync(src, 'utf8'));
+        }
+        continue;
+      }
+
       fs.mkdirSync(destDir, { recursive: true });
+
+      // css/*.css → copy + inject <link> into popup.html
+      if (relDir === 'css' && entry.name.endsWith('.css')) {
+        fs.copyFileSync(src, dest);
+        const popupPath = path.join(outDir, 'popup.html');
+        if (fs.existsSync(popupPath)) {
+          let popup = fs.readFileSync(popupPath, 'utf8');
+          const tag = `<link rel="stylesheet" href="css/${entry.name}">`;
+          if (!popup.includes(tag)) {
+            popup = popup.replace('</head>', `${tag}\n</head>`);
+            fs.writeFileSync(popupPath, popup);
+          }
+        }
+        continue;
+      }
+
+      // js/ruleset-exclusive.js → replace token + inject <script> into dashboard.html
       if (entry.name === 'ruleset-exclusive.js') {
         const content = fs.readFileSync(src, 'utf8').replace('__EXCLUSIVE_PAIRS__', exclusivePairsJson);
         fs.writeFileSync(dest, content);
-        // Inject <script> tag into dashboard.html if not already present
         const dashPath = path.join(outDir, 'dashboard.html');
         if (fs.existsSync(dashPath)) {
           let dash = fs.readFileSync(dashPath, 'utf8');
           if (!dash.includes('ruleset-exclusive.js')) {
             dash = dash.replace('</body>', '<script src="js/ruleset-exclusive.js"></script>\n</body>');
             fs.writeFileSync(dashPath, dash);
+          }
+        }
+        continue;
+      }
+
+      // welcome.html → copy + register in manifest web_accessible_resources
+      if (entry.name === 'welcome.html') {
+        fs.copyFileSync(src, dest);
+        const manifestPath = path.join(outDir, 'manifest.json');
+        if (fs.existsSync(manifestPath)) {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          const war = manifest.web_accessible_resources ?? [];
+          const already = war.some(e => (e.resources ?? []).includes('welcome.html'));
+          if (!already) {
+            war.push({ resources: ['welcome.html'], matches: ['<all_urls>'] });
+            manifest.web_accessible_resources = war;
+            fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
           }
         }
         continue;

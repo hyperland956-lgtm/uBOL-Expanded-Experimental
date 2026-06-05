@@ -1,0 +1,5 @@
+/* uBOL-Expanded popup tweaks */
+
+#gotoReport {
+    display: none !important;
+}
