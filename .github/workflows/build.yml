@@ -33,11 +33,21 @@ jobs:
       - name: Clone uBlock source
         run: git clone --depth 1 https://github.com/gorhill/uBlock.git ublock-src
 
-      - name: Clone uBOL-home (platform base dirs)
+      - name: Download uBOL-home base extensions
         run: |
-          git clone --depth 1 https://github.com/uBlockOrigin/uBOL-home.git ubol-home
-          cp -r ubol-home/chromium ./chromium
-          cp -r ubol-home/firefox ./firefox
+          mkdir -p chromium firefox
+          LATEST_API="https://api.github.com/repos/uBlockOrigin/uBOL-home/releases/latest"
+          
+          # Download Chromium base
+          CHROMIUM_URL=$(curl -s $LATEST_API | jq -r '.assets[] | select(.name | test("chromium.zip")) | .browser_download_url')
+          curl -sL $CHROMIUM_URL -o chromium.zip
+          unzip -q chromium.zip -d chromium/
+          
+          # Download Firefox base
+          FIREFOX_URL=$(curl -s $LATEST_API | jq -r '.assets[] | select(.name | test("firefox.signed.xpi|firefox.zip")) | .browser_download_url')
+          curl -sL $FIREFOX_URL -o firefox.zip
+          unzip -q firefox.zip -d firefox/
+          rm -rf firefox/META-INF
 
       - name: Download AdGuard filter lists
         run: |
