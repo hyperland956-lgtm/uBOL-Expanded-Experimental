@@ -22,7 +22,8 @@
   {
     "id": "adguard-annoyances-extra",
     "name": "AdGuard Annoyances",
-    "group": "adguard-annoyances",
+    "group": "annoyances",
+    "parent": "AdGuard Annoyances",
     "enabled": false,
     "tags": "annoyances cookies popups banners adguard",
     "homeURL": "https://github.com/AdguardTeam/AdguardFilters",

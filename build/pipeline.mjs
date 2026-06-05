@@ -176,10 +176,17 @@ function mergePlatform(platform, compiledTmpDir) {
     const mergedDetails = baseDetails.map(d =>
       groupOverrides[d.id] ? { ...d, ...groupOverrides[d.id] } : d
     );
-    // Append our new AdGuard entries (deduplicated)
+    // Append our new AdGuard entries, applying group/parent/enabled from extra-filters.json
     const seenIds = new Set(mergedDetails.map(d => d.id));
     for (const d of newDetails) {
-      if (!seenIds.has(d.id)) mergedDetails.push(d);
+      if (seenIds.has(d.id)) continue;
+      const cfg = FILTERS.find(f => f.id === d.id);
+      if (cfg) {
+        d.group   = cfg.group;
+        d.enabled = cfg.enabled;
+        if (cfg.parent !== undefined) d.parent = cfg.parent;
+      }
+      mergedDetails.push(d);
     }
     fs.writeFileSync(outDetailsPath, JSON.stringify(mergedDetails, null, 2) + '\n');
   }
@@ -196,25 +203,6 @@ function mergePlatform(platform, compiledTmpDir) {
   ];
   fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(newManifest, null, 2) + '\n');
 
-  // Add filter-lists.js group patch for adguard-annoyances
-  patchFilterListsJs(platform.outDir);
-}
-
-// Append the adguard-annoyances group support to filter-lists.js
-function patchFilterListsJs(outDir) {
-  const filePath = path.join(outDir, 'js', 'filter-lists.js');
-  if (!fs.existsSync(filePath)) return;
-  let content = fs.readFileSync(filePath, 'utf8');
-  if (content.includes('adguard-annoyances')) return; // already patched
-
-  // Inject adguard-annoyances as a new group alongside 'annoyances'
-  const injection = `        ], [\n            'adguard-annoyances',\n            rulesetDetails.filter(ruleset =>\n                ruleset.group === 'adguard-annoyances'\n            ),\n`;
-  // Insert just before the 'misc' group entry
-  content = content.replace(
-    `        ], [\n            'misc',`,
-    `${injection}        ], [\n            'misc',`
-  );
-  fs.writeFileSync(filePath, content);
 }
 
 // Apply patches/ directory onto an extension output dir.
