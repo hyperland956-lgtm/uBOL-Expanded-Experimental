@@ -1,10 +1,18 @@
 {
   "author": "cudios",
   "short_name": "uBOL-Exp",
+  "background": {
+    "scripts": ["/js/background.js"],
+    "type": "module"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "ubol-expanded@cudios",
-      "strict_min_version": "114.0"
+      "strict_min_version": "114.0",
+      "data_collection_permissions": {
+        "required": [],
+        "optional": []
+      }
     },
     "gecko_android": {
       "strict_min_version": "114.0"

@@ -203,6 +203,9 @@ function mergePlatform(platform, compiledTmpDir) {
   ];
   fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(newManifest, null, 2) + '\n');
 
+  // Strip debug rulesets — they exceed AMO's 5 MB file size limit and are dev-only
+  const debugDir = path.join(platform.outDir, 'rulesets', 'debug');
+  if (fs.existsSync(debugDir)) fs.rmSync(debugDir, { recursive: true, force: true });
 }
 
 // Apply patches/ directory onto an extension output dir.
