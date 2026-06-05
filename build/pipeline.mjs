@@ -206,6 +206,14 @@ function mergePlatform(platform, compiledTmpDir) {
   // Strip debug rulesets — they exceed AMO's 5 MB file size limit and are dev-only
   const debugDir = path.join(platform.outDir, 'rulesets', 'debug');
   if (fs.existsSync(debugDir)) fs.rmSync(debugDir, { recursive: true, force: true });
+
+  // Strip oversized individual ruleset files that breach AMO's 5 MB linter limit.
+  // The DNR engine reads the compiled binary rulesets, not these JSON files at runtime.
+  const oversizedFiles = ['adguard-tracking-extra.json'];
+  for (const fname of oversizedFiles) {
+    const fp = path.join(platform.outDir, 'rulesets', 'main', fname);
+    if (fs.existsSync(fp)) fs.rmSync(fp);
+  }
 }
 
 // Apply patches/ directory onto an extension output dir.
