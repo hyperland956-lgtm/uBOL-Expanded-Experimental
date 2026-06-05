@@ -51,7 +51,7 @@ uBOL-Exp exposes settings that can be defined by administrators through [managed
 
 ## FAQ
 
-See the upstream [FAQ](https://github.com/uBlockOrigin/uBOL-home/wiki/Frequently-asked-questions-(FAQ)) — most answers apply here too.
+See the upstream [FAQ](https://github.com/uBlockOrigin/uBOL-home/wiki/Frequently-asked-questions-(FAQ)), most answers apply here too.
 
 ## Credits
 
