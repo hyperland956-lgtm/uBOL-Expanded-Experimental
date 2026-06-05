@@ -41,14 +41,15 @@ jobs:
           mkdir -p firefox-src
           unzip -q firefox-build.zip -d firefox-src
 
-      - name: Sign with web-ext (unlisted / self-distributed)
+      - name: Sign and submit to AMO
         run: |
+          echo '{"license":"GPL-3.0-only"}' > amo-metadata.json
           npx web-ext@latest sign \
             --api-key="${{ secrets.AMO_JWT_ISSUER }}" \
             --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
             --source-dir=firefox-src \
             --channel=listed \
-            --amo-metadata='{"license":"GPL-3.0-only"}' \
+            --amo-metadata=amo-metadata.json \
             --artifacts-dir=./signed
 
       - name: Confirm AMO submission
