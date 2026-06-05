@@ -22,12 +22,13 @@ function copyFileSync(src, dest) {
   fs.copyFileSync(src, dest);
 }
 
-function copyDirSync(src, dest) {
+function copyDirSync(src, dest, filter) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (filter && !filter(entry.name)) continue;
     const s = path.join(src, entry.name);
     const d = path.join(dest, entry.name);
-    entry.isDirectory() ? copyDirSync(s, d) : fs.copyFileSync(s, d);
+    entry.isDirectory() ? copyDirSync(s, d, filter) : fs.copyFileSync(s, d);
   }
 }
 
@@ -144,7 +145,9 @@ function runConverter() {
 
 // Merge compiled AdGuard rulesets into a platform's extension output
 function mergePlatform(platform, compiledTmpDir) {
-  copyDirSync(platform.baseDir, platform.outDir);
+  // Copy platform base dir, excluding files that don't belong in a shipped extension
+  const EXCLUDE_FROM_OUTPUT = new Set(['README.md', 'log.txt', 'background.html', 'filter-overrides.json']);
+  copyDirSync(platform.baseDir, platform.outDir, (name) => !EXCLUDE_FROM_OUTPUT.has(name));
 
   // Copy compiled AdGuard ruleset files (main/, scripting/, etc.)
   const rulesetsDir = path.join(compiledTmpDir, 'rulesets');
