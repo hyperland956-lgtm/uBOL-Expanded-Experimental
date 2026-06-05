@@ -43,13 +43,8 @@ jobs:
 
       - name: Sign and submit to AMO
         run: |
-          cat > amo-metadata.json << 'EOF'
-          {
-            "license": "GPL-3.0-or-later",
-            "categories": {"firefox": ["privacy-security"]},
-            "summary": "uBO Lite with extra filter lists — AdGuard Base, Tracking Protection, and Annoyances. Blocks ads, trackers, and more."
-          }
-          EOF
+          printf '{"license":"GPL-3.0-or-later","categories":{"firefox":["privacy-security"]},"summary":"uBO Lite with extra filter lists. Blocks ads and trackers."}\n' > amo-metadata.json
+          echo "=== amo-metadata.json ===" && cat amo-metadata.json
           npx web-ext@latest sign \
             --api-key="${{ secrets.AMO_JWT_ISSUER }}" \
             --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
