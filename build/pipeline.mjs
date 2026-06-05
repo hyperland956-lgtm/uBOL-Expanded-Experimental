@@ -191,17 +191,23 @@ function mergePlatform(platform, compiledTmpDir) {
     fs.writeFileSync(outDetailsPath, JSON.stringify(mergedDetails, null, 2) + '\n');
   }
 
-  // Merge manifest rule_resources
-  const baseManifest = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
-  const newManifest  = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
+  // Merge manifest rule_resources.
+  // Start from the platform's own base manifest (correct permissions, no Chromium-only
+  // keys like offscreen/userScripts/incognito:split). Only transplant new AdGuard
+  // rule_resources from the compiled output.
+  const baseManifest    = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
+  const compiledManifest = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
   const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
-  const ourRulesets  = newManifest.declarative_net_request?.rule_resources ?? [];
+  const ourRulesets  = compiledManifest.declarative_net_request?.rule_resources ?? [];
   const seen = new Set(baseRulesets.map(r => r.id));
-  newManifest.declarative_net_request.rule_resources = [
-    ...baseRulesets,
-    ...ourRulesets.filter(r => !seen.has(r.id)),
-  ];
-  fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(newManifest, null, 2) + '\n');
+  baseManifest.declarative_net_request = {
+    ...baseManifest.declarative_net_request,
+    rule_resources: [
+      ...baseRulesets,
+      ...ourRulesets.filter(r => !seen.has(r.id)),
+    ],
+  };
+  fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(baseManifest, null, 2) + '\n');
 
   // Strip debug rulesets — dev-only, not needed in any shipped build
   const debugDir = path.join(platform.outDir, 'rulesets', 'debug');
