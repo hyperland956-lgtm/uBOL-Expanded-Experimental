@@ -241,7 +241,15 @@ function applyPatches(outDir, platformId) {
       const relPath = relDir ? `${relDir}/${entry.name}` : entry.name;
 
       if (entry.isDirectory()) {
-        if (entry.name === 'icons') continue;
+        if (entry.name === 'icons') {
+          // Copy custom icons into the extension's img/ directory
+          const imgDest = path.join(outDir, 'img');
+          fs.mkdirSync(imgDest, { recursive: true });
+          for (const f of fs.readdirSync(src)) {
+            fs.copyFileSync(path.join(src, f), path.join(imgDest, f));
+          }
+          continue;
+        }
         // Skip platform-specific folders meant for the other platform
         if (entry.name === 'firefox' || entry.name === 'chromium') continue;
         processDir(src, dest, relPath);
