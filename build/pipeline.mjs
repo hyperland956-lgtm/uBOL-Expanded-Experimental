@@ -348,6 +348,27 @@ function summary(compiledTmpDir) {
   }
 }
 
+// rewrite extName in EVERY locale's messages.json.
+
+function rebrandAllLocales(outDir) {
+  const localesDir = path.join(outDir, '_locales');
+  if (!fs.existsSync(localesDir)) return;
+
+  const NEW_NAME = 'uBOL Expanded';
+
+  for (const locale of fs.readdirSync(localesDir)) {
+    const msgPath = path.join(localesDir, locale, 'messages.json');
+    if (!fs.existsSync(msgPath)) continue;
+
+    const msgs = JSON.parse(fs.readFileSync(msgPath, 'utf8'));
+    if (msgs.extName && msgs.extName.message) {
+      msgs.extName.message = NEW_NAME;
+    }
+    fs.writeFileSync(msgPath, JSON.stringify(msgs, null, 2) + '\n');
+  }
+  console.log(`  Rebranded extName → "${NEW_NAME}" in all locales`);
+}
+
 async function main() {
   console.log('uBOL-Expanded pipeline starting...\n');
   cleanDirs();
@@ -365,6 +386,7 @@ async function main() {
     }
     mergePlatform(platform, compiledTmpDir);
     applyPatches(platform.outDir, platform.id);
+    rebrandAllLocales(platform.outDir);
   }
 
   summary(compiledTmpDir);
