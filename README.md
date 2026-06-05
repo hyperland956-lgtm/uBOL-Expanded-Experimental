@@ -17,7 +17,7 @@ On top of that, uBOL-Exp adds these **optional** filter lists you can enable in 
 - **AdGuard Tracking Protection**: extended tracker blocking
 - **AdGuard Annoyances**: cookie banners, popups, and other annoyances
 
-AdGuard lists are mutually exclusive with their EasyList equivalents — enabling one automatically disables the other to avoid rule conflicts.
+AdGuard lists are mutually exclusive with their EasyList equivalents. Enabling one automatically disables the other to avoid any potential rule conflicts.
 
 ## How It Works
 
