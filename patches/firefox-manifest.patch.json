@@ -8,10 +8,10 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ubolexpanded@cudios",
-      "strict_min_version": "114.0"
+      "strict_min_version": "128.0"
     },
     "gecko_android": {
-      "strict_min_version": "114.0"
+      "strict_min_version": "128.0"
     }
   }
 }
