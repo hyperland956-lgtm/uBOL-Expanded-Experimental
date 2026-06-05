@@ -48,6 +48,7 @@ jobs:
             --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
             --source-dir=firefox-src \
             --channel=listed \
+            --amo-metadata='{"license":"GPL-3.0-only"}' \
             --artifacts-dir=./signed
 
       - name: Confirm AMO submission
