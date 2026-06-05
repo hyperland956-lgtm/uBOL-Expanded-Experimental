@@ -1,0 +1,72 @@
+name: Build uBOL-Expanded
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: 'Extra release notes (optional)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '0 2 * * 1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate version
+        id: ver
+        run: |
+          VERSION=$(date -u +"%-Y.%-m%-d.%-H%M")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Clone uBlock source
+        run: git clone --depth 1 https://github.com/gorhill/uBlock.git ublock-src
+
+      - name: Download AdGuard filter lists
+        run: |
+          mkdir -p adguard-cache
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/2.txt  -o adguard-cache/adguard-base.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/3.txt  -o adguard-cache/adguard-tracking.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/14.txt -o adguard-cache/adguard-annoyances.txt
+
+      - name: Run build pipeline
+        run: node build/pipeline.mjs
+
+      - name: Create release ZIP and hash
+        run: |
+          cd extension-output
+          zip -r ../uBOL-Expanded_${{ env.VERSION }}.chromium.zip .
+          cd ..
+          SHA256=$(sha256sum uBOL-Expanded_${{ env.VERSION }}.chromium.zip | awk '{print $1}')
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }}
+          body: |
+            uBlock Origin Lite Expanded — MV3 content blocker with AdGuard filter support.
+
+            **AdGuard filters included:**
+            - AdGuard Base (Ads + EasyList)
+            - AdGuard Tracking Protection
+            - AdGuard Annoyances (Cookies, Popups, Mobile Banners)
+
+            ${{ github.event.inputs.notes }}
+
+            **sha256:** `${{ env.SHA256 }}`
+
+            **Installation:** Load unpacked in Chrome via `chrome://extensions`
+          files: uBOL-Expanded_${{ env.VERSION }}.chromium.zip
