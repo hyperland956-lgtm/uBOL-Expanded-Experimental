@@ -50,8 +50,7 @@ jobs:
             --channel=listed \
             --artifacts-dir=./signed
 
-      - name: Attach signed XPI to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          files: signed/*.xpi
+      - name: Confirm AMO submission
+        run: |
+          echo "Submitted to AMO review queue for tag ${{ steps.release.outputs.tag }}"
+          echo "Users will receive the update via addons.mozilla.org once reviewed."
