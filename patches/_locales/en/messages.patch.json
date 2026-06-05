@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "uBlock Origin Lite Expanded",
+    "message": "uBOL Expanded",
     "description": "extension name shown on the extensions page"
   },
   "extShortDesc": {
-    "message": "uBO Lite with extra filter lists — AdGuard Base, Tracking Protection, and Annoyances. Blocks ads, trackers, and more.",
+    "message": "uBO Lite with extra filter lists — AdGuard Base, Tracking Protection, and Annoyances; and UI changes. Blocks ads, trackers, and more.",
     "description": "Chrome Web Store description, max 132 characters"
   },
   "dashboardName": {
