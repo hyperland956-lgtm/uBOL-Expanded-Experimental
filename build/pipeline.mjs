@@ -1,16 +1,3 @@
-/**
- * uBOL-Expanded build pipeline
- *
- * Reads adguard-filters.json, stages ublock-src converter tools,
- * compiles AdGuard filter lists, then injects the compiled rulesets
- * into the base uBOL chromium extension (from this repo's chromium/ dir).
- *
- * The base rulesets (easylist, easyprivacy, etc.) are PRESERVED.
- * AdGuard rulesets are APPENDED on top.
- *
- * Patches from patches/ are applied last.
- */
-
 import fs   from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
@@ -18,12 +5,17 @@ import { fileURLToPath } from 'url';
 
 const ROOT      = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const UBLOCK    = path.join(ROOT, 'ublock-src');
-const BASE_EXT  = path.join(ROOT, 'chromium');
+const PATCHES   = path.join(ROOT, 'patches');
+const OVERRIDES = JSON.parse(fs.readFileSync(path.join(PATCHES, 'filter-overrides.json'), 'utf8'));
+const FILTERS   = JSON.parse(fs.readFileSync(path.join(ROOT, 'extra-filters.json'), 'utf8'));
+
+const PLATFORMS = [
+  { id: 'chromium', baseDir: path.join(ROOT, 'chromium'), outDir: path.join(ROOT, 'output-chromium') },
+  { id: 'firefox',  baseDir: path.join(ROOT, 'firefox'),  outDir: path.join(ROOT, 'output-firefox')  },
+];
+
 const WORKSPACE = path.join(ROOT, 'build-workspace');
 const MV3_DATA  = path.join(ROOT, 'mv3-data');
-const EXT_OUT   = path.join(ROOT, 'extension-output');
-const PATCHES   = path.join(ROOT, 'patches');
-const FILTERS   = JSON.parse(fs.readFileSync(path.join(ROOT, 'adguard-filters.json'), 'utf8'));
 
 function copyFileSync(src, dest) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -43,15 +35,13 @@ function urlToCacheFilename(url) {
   return url.replace(/^https?:\/\//, '').replace(/\//g, '_');
 }
 
-// Step 1 — clean output directories
 function cleanDirs() {
-  for (const dir of [WORKSPACE, MV3_DATA, EXT_OUT]) {
+  for (const dir of [WORKSPACE, MV3_DATA, ...PLATFORMS.map(p => p.outDir)]) {
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
     fs.mkdirSync(dir, { recursive: true });
   }
 }
 
-// Step 2 — stage uBlock converter dependencies into WORKSPACE
 function stageWorkspace() {
   const SRC = path.join(UBLOCK, 'src');
   const MV3 = path.join(UBLOCK, 'platform', 'mv3');
@@ -68,7 +58,6 @@ function stageWorkspace() {
     const src = path.join(SRC, 'js', f);
     if (fs.existsSync(src)) copyFileSync(src, path.join(WORKSPACE, 'js', f));
   }
-
   for (const lib of ['csstree', 'regexanalyzer', 'publicsuffixlist']) {
     const src = path.join(SRC, 'lib', lib);
     if (fs.existsSync(src)) copyDirSync(src, path.join(WORKSPACE, 'lib', lib));
@@ -95,152 +84,199 @@ function stageWorkspace() {
       JSON.stringify(Array.from(fs.readFileSync(pslWasm)))
     );
   }
-
   const nodejsDir = path.join(UBLOCK, 'platform', 'nodejs');
   if (fs.existsSync(nodejsDir)) {
     for (const f of fs.readdirSync(nodejsDir)) {
       if (f.endsWith('.js')) copyFileSync(path.join(nodejsDir, f), path.join(WORKSPACE, f));
     }
   }
-
   for (const f of ['make-rulesets.js', 'salvage-ruleids.mjs', 'package.json']) {
     const src = path.join(MV3, f);
     if (fs.existsSync(src)) copyFileSync(src, path.join(WORKSPACE, f));
   }
-
   const offscreenSrc = path.join(MV3, 'extension', 'js', 'offscreen');
   if (fs.existsSync(offscreenSrc)) copyDirSync(offscreenSrc, path.join(WORKSPACE, 'js', 'offscreen'));
-
   const regexAnalyzer = path.join(SRC, 'js', 'regex-analyzer.js');
-  if (fs.existsSync(regexAnalyzer)) {
-    copyFileSync(regexAnalyzer, path.join(WORKSPACE, 'js', 'offscreen', 'regex-analyzer.js'));
-  }
-
+  if (fs.existsSync(regexAnalyzer)) copyFileSync(regexAnalyzer, path.join(WORKSPACE, 'js', 'offscreen', 'regex-analyzer.js'));
   const utilsSrc = path.join(MV3, 'extension', 'js', 'utils.js');
   if (fs.existsSync(utilsSrc)) copyFileSync(utilsSrc, path.join(WORKSPACE, 'js', 'utils.js'));
-
   const resourcesSrc = path.join(SRC, 'js', 'resources');
   if (fs.existsSync(resourcesSrc)) copyDirSync(resourcesSrc, path.join(WORKSPACE, 'js', 'resources'));
-
   const regexLib = path.join(SRC, 'lib', 'regexanalyzer');
   if (fs.existsSync(regexLib)) copyDirSync(regexLib, path.join(WORKSPACE, 'js', 'regexanalyzer'));
-
   const scriptletsSrc = path.join(MV3, 'scriptlets');
   if (fs.existsSync(scriptletsSrc)) copyDirSync(scriptletsSrc, path.join(WORKSPACE, 'scriptlets'));
-
   const warSrc = path.join(SRC, 'web_accessible_resources');
   if (fs.existsSync(warSrc)) copyDirSync(warSrc, path.join(WORKSPACE, 'web_accessible_resources'));
-
   const chromiumPlatform = path.join(MV3, 'chromium');
   if (fs.existsSync(chromiumPlatform)) copyDirSync(chromiumPlatform, path.join(WORKSPACE, 'chromium'));
 }
 
-// Step 3 — write rulesets.json for make-rulesets.js
 function writeRulesetsJson() {
   const rulesets = FILTERS.map(f => ({
-    id:      f.id,
-    name:    f.name,
-    group:   f.group,
-    enabled: f.enabled,
-    tags:    f.tags,
-    urls:    [ f.url ],
-    homeURL: f.homeURL,
+    id: f.id, name: f.name, group: f.group, enabled: f.enabled,
+    tags: f.tags, urls: [f.url], homeURL: f.homeURL,
   }));
   fs.writeFileSync(path.join(WORKSPACE, 'rulesets.json'), JSON.stringify(rulesets, null, 2));
 }
 
-// Step 4 — populate mv3-data cache from local filter files
 function populateCache() {
+  const cacheDir = path.join(ROOT, 'cache');
   for (const f of FILTERS) {
     const localPath = path.join(ROOT, f.cacheFile);
-    if (!fs.existsSync(localPath)) {
-      throw new Error(`Filter cache file not found: ${localPath}`);
-    }
-    const cacheName = urlToCacheFilename(f.url);
-    fs.copyFileSync(localPath, path.join(MV3_DATA, cacheName));
+    if (!fs.existsSync(localPath)) throw new Error(`Cache file not found: ${localPath}`);
+    fs.copyFileSync(localPath, path.join(MV3_DATA, urlToCacheFilename(f.url)));
   }
 }
 
-// Step 5 — copy base uBOL extension (from fork's chromium/ dir)
-function copyBaseExtension() {
-  copyDirSync(BASE_EXT, EXT_OUT);
-}
-
-// Step 6 — run the official make-rulesets.js
+// Compile AdGuard rulesets once — output goes to a temp dir, then we distribute per-platform
 function runConverter() {
+  const tmpOut = path.join(ROOT, 'output-chromium-tmp');
+  if (fs.existsSync(tmpOut)) fs.rmSync(tmpOut, { recursive: true, force: true });
+  // Use chromium as the compile target (DNR format is the same for chromium/edge/firefox mv3)
+  copyDirSync(PLATFORMS[0].baseDir, tmpOut);
   execSync(
-    `node --no-warnings make-rulesets.js output="${EXT_OUT}" platform=chromium`,
+    `node --no-warnings make-rulesets.js output="${tmpOut}" platform=chromium`,
     { cwd: WORKSPACE, stdio: 'inherit' }
   );
+  return tmpOut;
 }
 
-// Step 7 — merge manifests: restore base rulesets, append AdGuard ones
-// make-rulesets.js replaces rule_resources entirely; we fix that here.
-function mergeManifests() {
-  const baseManifest = JSON.parse(fs.readFileSync(path.join(BASE_EXT, 'manifest.json'), 'utf8'));
-  const newManifest  = JSON.parse(fs.readFileSync(path.join(EXT_OUT,  'manifest.json'), 'utf8'));
+// Merge compiled AdGuard rulesets into a platform's extension output
+function mergePlatform(platform, compiledTmpDir) {
+  copyDirSync(platform.baseDir, platform.outDir);
 
-  const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
-  const ourRulesets  = newManifest.declarative_net_request?.rule_resources  ?? [];
-
-  // Deduplicate by id in case of re-runs
-  const seen = new Set(baseRulesets.map(r => r.id));
-  const merged = [...baseRulesets, ...ourRulesets.filter(r => !seen.has(r.id))];
-
-  newManifest.declarative_net_request.rule_resources = merged;
-  fs.writeFileSync(path.join(EXT_OUT, 'manifest.json'), JSON.stringify(newManifest, null, 2) + '\n');
-
-  // Also merge ruleset-details.json for the dashboard UI
-  const baseDetailsPath = path.join(BASE_EXT, 'rulesets', 'ruleset-details.json');
-  const newDetailsPath  = path.join(EXT_OUT,  'rulesets', 'ruleset-details.json');
-  if (fs.existsSync(baseDetailsPath) && fs.existsSync(newDetailsPath)) {
-    const baseDetails = JSON.parse(fs.readFileSync(baseDetailsPath, 'utf8'));
-    const newDetails  = JSON.parse(fs.readFileSync(newDetailsPath,  'utf8'));
-    const seenIds = new Set(baseDetails.map(d => d.id));
-    const mergedDetails = [...baseDetails, ...newDetails.filter(d => !seenIds.has(d.id))];
-    fs.writeFileSync(newDetailsPath, JSON.stringify(mergedDetails, null, 2) + '\n');
-  }
-}
-
-// Step 8 — apply patches from patches/ (file overrides on top of extension-output/)
-// To add a patch: drop the file into patches/ mirroring the extension folder structure.
-// e.g. patches/_locales/en/messages.json  →  extension-output/_locales/en/messages.json
-function applyPatches() {
-  if (!fs.existsSync(PATCHES)) return;
-
-  function applyDir(srcDir, destDir) {
-    for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
-      const src  = path.join(srcDir,  entry.name);
-      const dest = path.join(destDir, entry.name);
+  // Copy compiled AdGuard ruleset files (main/, scripting/, etc.)
+  const rulesetsDir = path.join(compiledTmpDir, 'rulesets');
+  const outRulesetsDir = path.join(platform.outDir, 'rulesets');
+  if (fs.existsSync(rulesetsDir)) {
+    for (const entry of fs.readdirSync(rulesetsDir, { withFileTypes: true })) {
+      const src = path.join(rulesetsDir, entry.name);
+      const dest = path.join(outRulesetsDir, entry.name);
       if (entry.isDirectory()) {
-        // icons/ in patches is a reference folder, not applied to extension
-        if (entry.name === 'icons') continue;
-        applyDir(src, dest);
-      } else {
-        fs.mkdirSync(destDir, { recursive: true });
-        fs.copyFileSync(src, dest);
+        for (const f of fs.readdirSync(src)) {
+          const fname = path.join(src, f);
+          const fdest = path.join(dest, f);
+          const isOurs = FILTERS.some(fil => f.startsWith(fil.id));
+          if (isOurs) copyFileSync(fname, fdest);
+        }
       }
     }
   }
 
-  applyDir(PATCHES, EXT_OUT);
+  // Merge ruleset-details.json
+  const baseDetailsPath = path.join(platform.baseDir, 'rulesets', 'ruleset-details.json');
+  const newDetailsPath  = path.join(compiledTmpDir, 'rulesets', 'ruleset-details.json');
+  const outDetailsPath  = path.join(platform.outDir, 'rulesets', 'ruleset-details.json');
+  if (fs.existsSync(baseDetailsPath) && fs.existsSync(newDetailsPath)) {
+    const baseDetails = JSON.parse(fs.readFileSync(baseDetailsPath, 'utf8'));
+    const newDetails  = JSON.parse(fs.readFileSync(newDetailsPath, 'utf8'));
+    // Apply group overrides to existing rulesets
+    const { groupOverrides } = OVERRIDES;
+    const mergedDetails = baseDetails.map(d =>
+      groupOverrides[d.id] ? { ...d, ...groupOverrides[d.id] } : d
+    );
+    // Append our new AdGuard entries (deduplicated)
+    const seenIds = new Set(mergedDetails.map(d => d.id));
+    for (const d of newDetails) {
+      if (!seenIds.has(d.id)) mergedDetails.push(d);
+    }
+    fs.writeFileSync(outDetailsPath, JSON.stringify(mergedDetails, null, 2) + '\n');
+  }
+
+  // Merge manifest rule_resources
+  const baseManifest = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
+  const newManifest  = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
+  const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
+  const ourRulesets  = newManifest.declarative_net_request?.rule_resources ?? [];
+  const seen = new Set(baseRulesets.map(r => r.id));
+  newManifest.declarative_net_request.rule_resources = [
+    ...baseRulesets,
+    ...ourRulesets.filter(r => !seen.has(r.id)),
+  ];
+  fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(newManifest, null, 2) + '\n');
+
+  // Add filter-lists.js group patch for adguard-annoyances
+  patchFilterListsJs(platform.outDir);
 }
 
-// Step 9 — print build summary
-function summary() {
-  const detailsPath = path.join(EXT_OUT, 'rulesets', 'ruleset-details.json');
-  const details = fs.existsSync(detailsPath)
-    ? JSON.parse(fs.readFileSync(detailsPath, 'utf8'))
-    : [];
-  const adguardDetails = details.filter(d => d.id.endsWith('-extra'));
+// Append the adguard-annoyances group support to filter-lists.js
+function patchFilterListsJs(outDir) {
+  const filePath = path.join(outDir, 'js', 'filter-lists.js');
+  if (!fs.existsSync(filePath)) return;
+  let content = fs.readFileSync(filePath, 'utf8');
+  if (content.includes('adguard-annoyances')) return; // already patched
 
-  console.log('\nBuild complete — uBOL-Expanded');
-  console.log(`Base rulesets: ${details.length - adguardDetails.length}`);
-  console.log(`AdGuard rulesets added: ${adguardDetails.length}`);
-  for (const d of adguardDetails) {
-    console.log(`  ${d.id}: ${d.filters?.accepted?.toLocaleString()} filters → ${d.rules?.plain?.toLocaleString()} DNR rules`);
+  // Inject adguard-annoyances as a new group alongside 'annoyances'
+  const injection = `        ], [\n            'adguard-annoyances',\n            rulesetDetails.filter(ruleset =>\n                ruleset.group === 'adguard-annoyances'\n            ),\n`;
+  // Insert just before the 'misc' group entry
+  content = content.replace(
+    `        ], [\n            'misc',`,
+    `${injection}        ], [\n            'misc',`
+  );
+  fs.writeFileSync(filePath, content);
+}
+
+// Apply patches/ directory onto an extension output dir.
+// Special handling:
+//   *.patch.json  → merged into the matching *.json (not replaced)
+//   js/ruleset-exclusive.js → template token __EXCLUSIVE_PAIRS__ replaced with live config
+function applyPatches(outDir) {
+  const exclusivePairsJson = JSON.stringify(OVERRIDES.exclusivePairs);
+
+  function processDir(srcDir, destDir) {
+    for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+      const src  = path.join(srcDir,  entry.name);
+      const dest = path.join(destDir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (entry.name === 'icons') continue; // icons/ is reference-only, not auto-applied
+        processDir(src, dest);
+        continue;
+      }
+
+      if (entry.name.endsWith('.patch.json')) {
+        const targetPath = dest.replace(/\.patch\.json$/, '.json');
+        if (!fs.existsSync(targetPath)) { fs.mkdirSync(path.dirname(targetPath), { recursive: true }); }
+        const original = fs.existsSync(targetPath) ? JSON.parse(fs.readFileSync(targetPath, 'utf8')) : {};
+        const patch = JSON.parse(fs.readFileSync(src, 'utf8'));
+        fs.writeFileSync(targetPath, JSON.stringify({ ...original, ...patch }, null, 2) + '\n');
+        continue;
+      }
+
+      fs.mkdirSync(destDir, { recursive: true });
+      if (entry.name === 'ruleset-exclusive.js') {
+        const content = fs.readFileSync(src, 'utf8').replace('__EXCLUSIVE_PAIRS__', exclusivePairsJson);
+        fs.writeFileSync(dest, content);
+        // Inject <script> tag into dashboard.html if not already present
+        const dashPath = path.join(outDir, 'dashboard.html');
+        if (fs.existsSync(dashPath)) {
+          let dash = fs.readFileSync(dashPath, 'utf8');
+          if (!dash.includes('ruleset-exclusive.js')) {
+            dash = dash.replace('</body>', '<script src="js/ruleset-exclusive.js"></script>\n</body>');
+            fs.writeFileSync(dashPath, dash);
+          }
+        }
+        continue;
+      }
+
+      fs.copyFileSync(src, dest);
+    }
   }
-  console.log(`\nOutput: ${EXT_OUT}`);
+
+  processDir(PATCHES, outDir);
+}
+
+function summary(compiledTmpDir) {
+  const detailsPath = path.join(compiledTmpDir, 'rulesets', 'ruleset-details.json');
+  if (!fs.existsSync(detailsPath)) return;
+  const details = JSON.parse(fs.readFileSync(detailsPath, 'utf8'));
+  console.log('\nBuild complete — uBOL-Expanded');
+  for (const d of details) {
+    const accepted = d.filters?.accepted?.toLocaleString() ?? '?';
+    const rules = ((d.rules?.plain ?? 0) + (d.rules?.regex ?? 0)).toLocaleString();
+    console.log(`  ${d.id}: ${accepted} filters → ${rules} DNR rules`);
+  }
 }
 
 async function main() {
@@ -249,11 +285,21 @@ async function main() {
   stageWorkspace();
   writeRulesetsJson();
   populateCache();
-  copyBaseExtension();
-  runConverter();
-  mergeManifests();
-  applyPatches();
-  summary();
+
+  const compiledTmpDir = runConverter();
+
+  for (const platform of PLATFORMS) {
+    console.log(`\nMerging platform: ${platform.id}`);
+    if (!fs.existsSync(platform.baseDir)) {
+      console.log(`  Skipping — base dir not found: ${platform.baseDir}`);
+      continue;
+    }
+    mergePlatform(platform, compiledTmpDir);
+    applyPatches(platform.outDir);
+  }
+
+  summary(compiledTmpDir);
+  fs.rmSync(compiledTmpDir, { recursive: true, force: true });
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

@@ -18,9 +18,9 @@ The default ruleset includes at least uBlock Origin's default filter set:
 - uBlock Origin's built-in filter lists
 - EasyList
 - EasyPrivacy
-- Peter Loweâ€™s Ad and tracking server list
+- Peter Lowe’s Ad and tracking server list
 
-You can enable additional rulesets by visiting the options page â€” click the _Cogs_ icon in the popup panel.
+You can enable additional rulesets by visiting the options page — click the _Cogs_ icon in the popup panel.
 
 ## Changelog
 
@@ -32,7 +32,7 @@ Older releases: [Wiki/Release notes (salvaged)](https://github.com/uBlockOrigin/
 
 uBO Lite _extension_ issues can be reported [here](https://github.com/cudios-dev/uBOL-Expanded/issues).
 
-Filter/website issues (ads, detection, trackers, breakage, etc.) need to be reported via the ðŸ’¬ _Chat_ icon in uBOL while on the affected site.
+Filter/website issues (ads, detection, trackers, breakage, etc.) need to be reported via the ?? _Chat_ icon in uBOL while on the affected site.
 
 Support questions can be asked [here](https://github.com/cudios-dev/uBOL-Expanded/discussions).
 
@@ -46,8 +46,8 @@ For more information, check the [_Wiki_](https://github.com/uBlockOrigin/uBOL-ho
 
 ## Credits
 
-- [uBlock Origin](https://github.com/gorhill/uBlock) by Raymond Hill (gorhill) â€” GPLv3
-- [uBO Lite](https://github.com/uBlockOrigin/uBOL-home) by uBlockOrigin team â€” GPLv3
+- [uBlock Origin](https://github.com/gorhill/uBlock) by Raymond Hill (gorhill) — GPLv3
+- [uBO Lite](https://github.com/uBlockOrigin/uBOL-home) by uBlockOrigin team — GPLv3
 - [AdGuard filters](https://github.com/AdguardTeam/AdguardFilters) by AdGuard team
 
 This project is also released under [GPLv3](chromium/LICENSE.txt).

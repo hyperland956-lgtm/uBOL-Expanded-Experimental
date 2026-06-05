@@ -1,0 +1,26 @@
+{
+  "extName": {
+    "message": "uBlock Origin Lite Expanded",
+    "description": "extension name shown on the extensions page"
+  },
+  "extShortDesc": {
+    "message": "An efficient MV3 content blocker with AdGuard Base, Tracking Protection, and Annoyances filters built-in.",
+    "description": "Chrome Web Store description, max 132 characters"
+  },
+  "dashboardName": {
+    "message": "uBOL-Expanded — Dashboard",
+    "description": "browser tab title for the dashboard"
+  },
+  "strictblockSentence1": {
+    "message": "uBOL-Expanded has prevented the following page from loading:",
+    "description": "sentence used in the strict-blocked page"
+  },
+  "3pGroupDefault": {
+    "message": "Built-in",
+    "description": "Header for the default/built-in ruleset section"
+  },
+  "3pGroupAdguardAnnoyances": {
+    "message": "AdGuard Annoyances",
+    "description": "Header for the AdGuard annoyances sub-section"
+  }
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "adguard-base-extra",
+    "name": "AdGuard Base filter",
+    "group": "ads",
+    "enabled": false,
+    "tags": "ads adguard easylist",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/2.txt",
+    "cacheFile": "cache/adguard-base.txt"
+  },
+  {
+    "id": "adguard-tracking-extra",
+    "name": "AdGuard Tracking Protection",
+    "group": "privacy",
+    "enabled": false,
+    "tags": "tracking privacy adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/3.txt",
+    "cacheFile": "cache/adguard-tracking.txt"
+  },
+  {
+    "id": "adguard-annoyances-extra",
+    "name": "AdGuard Annoyances",
+    "group": "adguard-annoyances",
+    "enabled": false,
+    "tags": "annoyances cookies popups banners adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/14.txt",
+    "cacheFile": "cache/adguard-annoyances.txt"
+  }
+]

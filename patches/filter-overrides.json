@@ -1,0 +1,10 @@
+{
+  "groupOverrides": {
+    "easylist":    { "group": "ads" },
+    "easyprivacy": { "group": "privacy" }
+  },
+  "exclusivePairs": [
+    ["easylist",    "adguard-base-extra"],
+    ["easyprivacy", "adguard-tracking-extra"]
+  ]
+}
