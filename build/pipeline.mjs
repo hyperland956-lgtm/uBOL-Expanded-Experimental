@@ -213,8 +213,15 @@ function mergePlatform(platform, compiledTmpDir) {
 //   js/ruleset-exclusive.js → __EXCLUSIVE_PAIRS__ token replaced, <script> injected into dashboard.html
 //   welcome.html        → copied + added to manifest web_accessible_resources
 //   icons/              → reference-only folder, skipped
-function applyPatches(outDir) {
+function applyPatches(outDir, platformId) {
   const exclusivePairsJson = JSON.stringify(OVERRIDES.exclusivePairs);
+
+  function applyPatchJson(src, targetPath) {
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    const original = fs.existsSync(targetPath) ? JSON.parse(fs.readFileSync(targetPath, 'utf8')) : {};
+    const patch    = JSON.parse(fs.readFileSync(src, 'utf8'));
+    fs.writeFileSync(targetPath, JSON.stringify({ ...original, ...patch }, null, 2) + '\n');
+  }
 
   function processDir(srcDir, destDir, relDir = '') {
     for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
@@ -224,17 +231,23 @@ function applyPatches(outDir) {
 
       if (entry.isDirectory()) {
         if (entry.name === 'icons') continue;
+        // Skip platform-specific folders meant for the other platform
+        if (entry.name === 'firefox' || entry.name === 'chromium') continue;
         processDir(src, dest, relPath);
+        continue;
+      }
+
+      // firefox-manifest.patch.json only applies to the firefox output
+      if (entry.name === 'firefox-manifest.patch.json') {
+        if (platformId === 'firefox') {
+          applyPatchJson(src, path.join(outDir, 'manifest.json'));
+        }
         continue;
       }
 
       // *.patch.json → merge into matching *.json
       if (entry.name.endsWith('.patch.json')) {
-        const targetPath = dest.replace(/\.patch\.json$/, '.json');
-        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-        const original = fs.existsSync(targetPath) ? JSON.parse(fs.readFileSync(targetPath, 'utf8')) : {};
-        const patch    = JSON.parse(fs.readFileSync(src, 'utf8'));
-        fs.writeFileSync(targetPath, JSON.stringify({ ...original, ...patch }, null, 2) + '\n');
+        applyPatchJson(src, dest.replace(/\.patch\.json$/, '.json'));
         continue;
       }
 
@@ -332,7 +345,7 @@ async function main() {
       continue;
     }
     mergePlatform(platform, compiledTmpDir);
-    applyPatches(platform.outDir);
+    applyPatches(platform.outDir, platform.id);
   }
 
   summary(compiledTmpDir);

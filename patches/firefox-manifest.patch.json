@@ -1,0 +1,13 @@
+{
+  "author": "cudios",
+  "short_name": "uBOL-Exp",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ubol-expanded@cudios",
+      "strict_min_version": "114.0"
+    },
+    "gecko_android": {
+      "strict_min_version": "114.0"
+    }
+  }
+}
