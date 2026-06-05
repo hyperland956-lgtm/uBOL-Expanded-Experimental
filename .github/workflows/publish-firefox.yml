@@ -1,9 +1,6 @@
 name: Sign Firefox Extension (AMO)
 
 on:
-  workflow_run:
-    workflows: ["Build uBOL-Expanded"]
-    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -14,7 +11,6 @@ on:
 jobs:
   sign:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: write
 
@@ -59,14 +55,24 @@ jobs:
           
           echo "=== amo-metadata.json ===" && cat amo-metadata.json
           
-          npx web-ext@latest sign \
+          # For listed channel, AMO requires human review (can take days).
+          # We cap the wait at 3 minutes — validation passes in ~1 min,
+          # after that we're just waiting for a human. Exit 0 on timeout.
+          timeout 180 npx web-ext@latest sign \
             --api-key="${{ secrets.AMO_JWT_ISSUER }}" \
             --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
             --source-dir=firefox-src \
             --channel=listed \
             --amo-metadata=amo-metadata.json \
-            --artifacts-dir=./signed
-            --approval-timeout=0
+            --artifacts-dir=./signed || {
+            EXIT=$?
+            if [ $EXIT -eq 124 ]; then
+              echo "✅ Submitted to AMO review queue (timed out waiting for human approval — expected)"
+              exit 0
+            fi
+            echo "❌ web-ext failed with exit code $EXIT"
+            exit $EXIT
+          }
 
       - name: Confirm AMO submission
         run: |
