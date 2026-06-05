@@ -1,0 +1,57 @@
+name: Sign Firefox Extension (AMO)
+
+on:
+  workflow_run:
+    workflows: ["Build uBOL-Expanded"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sign (leave blank for latest)'
+        required: false
+        default: ''
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Resolve release tag
+        id: release
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq '.tag_name')
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          FIREFOX_URL=$(gh api repos/${{ github.repository }}/releases/latest \
+            --jq '.assets[] | select(.name | test("firefox")) | .browser_download_url')
+          echo "firefox_url=$FIREFOX_URL" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download and unpack Firefox build
+        run: |
+          curl -fsSL "${{ steps.release.outputs.firefox_url }}" -o firefox-build.zip
+          mkdir -p firefox-src
+          unzip -q firefox-build.zip -d firefox-src
+
+      - name: Sign with web-ext (unlisted / self-distributed)
+        run: |
+          npx web-ext@latest sign \
+            --api-key="${{ secrets.AMO_JWT_ISSUER }}" \
+            --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
+            --source-dir=firefox-src \
+            --channel=listed \
+            --artifacts-dir=./signed
+
+      - name: Attach signed XPI to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          files: signed/*.xpi
