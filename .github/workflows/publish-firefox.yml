@@ -66,6 +66,7 @@ jobs:
             --channel=listed \
             --amo-metadata=amo-metadata.json \
             --artifacts-dir=./signed
+            --approval-timeout=0
 
       - name: Confirm AMO submission
         run: |
