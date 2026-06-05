@@ -52,7 +52,7 @@ jobs:
               "en-US": "uBO Lite with extra filter lists. Blocks ads and trackers."
             },
             "version": {
-              "license": "GPL-3.0-or-later"
+              "license": "GPL-3.0"
             }
           }
           EOF
