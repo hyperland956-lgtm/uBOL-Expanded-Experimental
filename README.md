@@ -1,41 +1,48 @@
-# uBOL-Expanded
+# uBO Lite
 
-**uBlock Origin Lite Expanded** (uBOL-Expanded) is a fork of [uBO Lite](https://github.com/uBlockOrigin/uBOL-home) with AdGuard filter lists built in.
+| Browser | Install from ... | Browser | Install from ... |
+| --- | --- | --- | --- |
+| <img src="https://github.com/user-attachments/assets/d5033882-0c94-424f-9e8b-e00ed832acf7" alt="Get uBO Lite for Chromium"> | <a href="https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh">Chrome Web Store</a> | <img src="https://github.com/user-attachments/assets/8a33b8ba-57ee-4a54-a83c-7d21f9b2dafb" alt="Get uBlock Origin Lite for Firefox"> | <a href="https://github.com/uBlockOrigin/uBOL-home/releases">Self-distributed</a> |
+| <img src="https://github.com/user-attachments/assets/acff1f85-d3f0-49eb-928e-7c43c5ef8f6c" alt="Get uBlock Origin Lite for Microsoft Edge"> | <a href="https://microsoftedge.microsoft.com/addons/detail/ublock-origin-lite/cimighlppcgcoapaliogpjjdehbnofhn">Edge Add-ons</a> | <img src="https://github.com/user-attachments/assets/d267b13e-b403-4040-93ea-fff38fea8c1b" alt="Get uBlock Origin Lite for Safari"> | <a href="https://apps.apple.com/us/app/ublock-origin-lite/id6745342698">Safari App Store</a> or<br>[Beta version via TestFlight](https://testflight.apple.com/join/mA7E47r1) |
 
-This fork uses the official uBO `make-rulesets.js` converter to compile AdGuard filter lists into Chromium's Declarative Net Request (DNR) format, then layers them on top of the standard uBOL release.
+## Description
 
-## What's different
+[Frequently asked questions (FAQ)](https://github.com/uBlockOrigin/uBOL-home/wiki/Frequently-asked-questions-(FAQ))
 
-The following AdGuard lists are compiled and bundled automatically on every release, in addition to everything already included in uBOL:
+**uBO Lite** (uBOL) is an efficient content blocker based on the [MV3 API](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3).
 
-| Filter | Enabled by default |
-|---|---|
-| AdGuard Base (Ads + EasyList) | ✅ |
-| AdGuard Tracking Protection | ☐ (opt-in) |
-| AdGuard Annoyances | ☐ (opt-in) |
+uBOL operates entirely declaratively, meaning no permanent process is required for filtering. The browser handles CSS/JS injection for content filtering, ensuring that uBOL does not consume CPU or memory resources while blocking content. The service worker process is only active when interacting with the popup panel or options pages.
 
-Everything else (EasyList, EasyPrivacy, uBlock filters, etc.) is inherited directly from the upstream uBO Lite release.
+The default ruleset includes at least uBlock Origin's default filter set:
 
-## Installation
+- uBlock Origin's built-in filter lists
+- EasyList
+- EasyPrivacy
+- Peter Lowe’s Ad and tracking server list
 
-Download the latest `uBOL-Expanded_*.chromium.zip` from the [Releases](../../releases) page.
+You can enable additional rulesets by visiting the options page — click the _Cogs_ icon in the popup panel.
 
-1. Unzip the file
-2. Open `chrome://extensions`
-3. Enable **Developer mode**
-4. Click **Load unpacked** and select the unzipped folder
+## Changelog
 
-## How it works
+See the [_Releases_](https://github.com/cudios-dev/uBOL-Expanded/releases) section.
 
-A GitHub Actions workflow runs on a schedule (or manually). It:
+Older releases: [Wiki/Release notes (salvaged)](https://github.com/uBlockOrigin/uBOL-home/wiki/Release-notes-(salvaged)).
 
-1. Clones the uBlock source for the official `make-rulesets.js` converter
-2. Downloads the latest AdGuard filter lists directly from the AdGuard CDN
-3. Compiles them into DNR format
-4. Injects the compiled rulesets into the upstream uBOL release
-5. Creates a GitHub Release with the packaged ZIP
+## Issues
 
-To add or remove filter lists, edit [`adguard-filters.json`](adguard-filters.json).
+uBO Lite _extension_ issues can be reported [here](https://github.com/cudios-dev/uBOL-Expanded/issues).
+
+Filter/website issues (ads, detection, trackers, breakage, etc.) need to be reported via the 💬 _Chat_ icon in uBOL while on the affected site.
+
+Support questions can be asked [here](https://github.com/cudios-dev/uBOL-Expanded/discussions).
+
+## Admin Policies
+
+uBOL exposes settings that can be defined by administrators through [managed storage](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/managed). See [Managed settings](https://github.com/uBlockOrigin/uBOL-home/wiki/Managed-settings).
+
+## Frequently Asked Questions (FAQ)
+
+For more information, check the [_Wiki_](https://github.com/uBlockOrigin/uBOL-home/wiki/Frequently-asked-questions-(FAQ)).
 
 ## Credits
 
