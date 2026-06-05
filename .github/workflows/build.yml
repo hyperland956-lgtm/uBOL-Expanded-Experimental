@@ -41,12 +41,12 @@ jobs:
           # Download Chromium base
           CHROMIUM_URL=$(curl -s $LATEST_API | jq -r '.assets[] | select(.name | test("chromium.zip")) | .browser_download_url')
           curl -sL $CHROMIUM_URL -o chromium.zip
-          unzip -q chromium.zip -d chromium/
+          unzip -qo chromium.zip -d chromium/
           
           # Download Firefox base
           FIREFOX_URL=$(curl -s $LATEST_API | jq -r '.assets[] | select(.name | test("firefox.signed.xpi|firefox.zip")) | .browser_download_url')
           curl -sL $FIREFOX_URL -o firefox.zip
-          unzip -q firefox.zip -d firefox/
+          unzip -qo firefox.zip -d firefox/
           rm -rf firefox/META-INF
 
       - name: Download AdGuard filter lists
