@@ -43,7 +43,13 @@ jobs:
 
       - name: Sign and submit to AMO
         run: |
-          echo '{"license":"GPL-3.0-only"}' > amo-metadata.json
+          cat > amo-metadata.json << 'EOF'
+          {
+            "license": "GPL-3.0-or-later",
+            "categories": {"firefox": ["privacy-security"]},
+            "summary": "uBO Lite with extra filter lists — AdGuard Base, Tracking Protection, and Annoyances. Blocks ads, trackers, and more."
+          }
+          EOF
           npx web-ext@latest sign \
             --api-key="${{ secrets.AMO_JWT_ISSUER }}" \
             --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
