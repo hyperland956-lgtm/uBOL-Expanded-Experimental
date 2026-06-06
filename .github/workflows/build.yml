@@ -39,12 +39,13 @@ jobs:
           cp -r ubol-home/chromium ./chromium
           cp -r ubol-home/firefox ./firefox
 
-      - name: Download AdGuard filter lists
+      - name: Download extra filter lists
         run: |
           mkdir -p cache
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/2.txt  -o cache/adguard-base.txt
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/3.txt  -o cache/adguard-tracking.txt
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/14.txt -o cache/adguard-annoyances.txt
+          curl -sSL https://nsfw-small.oisd.nl/ -o cache/oisd-nsfw.txt
 
       - name: Fetch upstream release notes
         run: |
