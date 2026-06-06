@@ -149,6 +149,15 @@ function mergePlatform(platform, compiledTmpDir) {
   const EXCLUDE_FROM_OUTPUT = new Set(['README.md', 'log.txt', 'background.html', 'filter-overrides.json']);
   copyDirSync(platform.baseDir, platform.outDir, (name) => !EXCLUDE_FROM_OUTPUT.has(name));
 
+  // Diagnostic: verify locale was copied correctly
+  const diagLocalePath = path.join(platform.outDir, '_locales', 'en', 'messages.json');
+  if (fs.existsSync(diagLocalePath)) {
+    const diagKeys = Object.keys(JSON.parse(fs.readFileSync(diagLocalePath, 'utf8')));
+    console.log(`  [diag] After base copy: _locales/en/messages.json has ${diagKeys.length} keys`);
+  } else {
+    console.log(`  [diag] WARNING: _locales/en/messages.json MISSING after base copy!`);
+  }
+
   // Copy compiled AdGuard ruleset files (main/, scripting/, etc.)
   const rulesetsDir = path.join(compiledTmpDir, 'rulesets');
   const outRulesetsDir = path.join(platform.outDir, 'rulesets');
