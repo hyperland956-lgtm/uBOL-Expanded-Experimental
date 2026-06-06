@@ -181,11 +181,11 @@ function mergePlatform(platform, compiledTmpDir) {
     }
   }
 
-  // Merge ruleset-details.json
+  // Merge ruleset-details.json (Chromium only, Firefox inherits the completed one from Chromium)
   const baseDetailsPath = path.join(platform.baseDir, 'rulesets', 'ruleset-details.json');
   const newDetailsPath  = path.join(compiledTmpDir, 'rulesets', 'ruleset-details.json');
   const outDetailsPath  = path.join(platform.outDir, 'rulesets', 'ruleset-details.json');
-  if (fs.existsSync(baseDetailsPath) && fs.existsSync(newDetailsPath)) {
+  if (platform.id === 'chromium' && fs.existsSync(baseDetailsPath) && fs.existsSync(newDetailsPath)) {
     const baseDetails = JSON.parse(fs.readFileSync(baseDetailsPath, 'utf8'));
     const newDetails  = JSON.parse(fs.readFileSync(newDetailsPath, 'utf8'));
     // Apply group overrides to existing rulesets
@@ -210,21 +210,31 @@ function mergePlatform(platform, compiledTmpDir) {
 
   // Merge manifest rule_resources.
   // Start from the platform's own base manifest (correct permissions, no Chromium-only
-  // keys like offscreen/userScripts/incognito:split). Only transplant new AdGuard
-  // rule_resources from the compiled output.
-  const baseManifest    = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
-  const compiledManifest = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
-  const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
-  const ourRulesets  = compiledManifest.declarative_net_request?.rule_resources ?? [];
-  const seen = new Set(baseRulesets.map(r => r.id));
-  const { groupOverrides } = OVERRIDES;
-  baseManifest.declarative_net_request = {
-    ...baseManifest.declarative_net_request,
-    rule_resources: [
-      ...baseRulesets,
-      ...ourRulesets.filter(r => !seen.has(r.id)),
-    ].map(r => groupOverrides[r.id]?.enabled === false ? { ...r, enabled: false } : r),
-  };
+  // keys like offscreen/userScripts/incognito:split).
+  const baseManifest = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
+
+  if (platform.id === 'firefox') {
+    // Firefox inherits the already-completed rule_resources from the Chromium output
+    const chromiumManifest = JSON.parse(fs.readFileSync(path.join(platform.outDir, 'manifest.json'), 'utf8'));
+    baseManifest.declarative_net_request = {
+      ...baseManifest.declarative_net_request,
+      rule_resources: chromiumManifest.declarative_net_request.rule_resources,
+    };
+  } else {
+    // Chromium: Merge new AdGuard rule_resources into base
+    const compiledManifest = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
+    const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
+    const ourRulesets  = compiledManifest.declarative_net_request?.rule_resources ?? [];
+    const seen = new Set(baseRulesets.map(r => r.id));
+    const { groupOverrides } = OVERRIDES;
+    baseManifest.declarative_net_request = {
+      ...baseManifest.declarative_net_request,
+      rule_resources: [
+        ...baseRulesets,
+        ...ourRulesets.filter(r => !seen.has(r.id)),
+      ].map(r => groupOverrides[r.id]?.enabled === false ? { ...r, enabled: false } : r),
+    };
+  }
   fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(baseManifest, null, 2) + '\n');
 
   // Strip debug rulesets — dev-only, not needed in any shipped build
