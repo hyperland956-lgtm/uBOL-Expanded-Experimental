@@ -145,9 +145,22 @@ function runConverter() {
 
 // Merge compiled AdGuard rulesets into a platform's extension output
 function mergePlatform(platform, compiledTmpDir) {
-  // Copy platform base dir, excluding files that don't belong in a shipped extension
   const EXCLUDE_FROM_OUTPUT = new Set(['README.md', 'log.txt', 'background.html', 'filter-overrides.json']);
-  copyDirSync(platform.baseDir, platform.outDir, (name) => !EXCLUDE_FROM_OUTPUT.has(name));
+
+  if (platform.id === 'firefox') {
+    // Firefox gets the full Chromium output as its base — the uBOL-home/firefox sparse
+    // clone is missing picker-ui.html, zapper-ui.html, unpicker-ui.html, strictblock.html
+    // and other UI files that exist in the Chromium release. Chromium output has everything.
+    const chromiumOut = PLATFORMS[0].outDir;
+    copyDirSync(chromiumOut, platform.outDir);
+
+    // Remove Chromium-only API: offscreen (Firefox doesn't support chrome.offscreen)
+    const offscreenDir = path.join(platform.outDir, 'js', 'offscreen');
+    if (fs.existsSync(offscreenDir)) fs.rmSync(offscreenDir, { recursive: true, force: true });
+  } else {
+    // Chromium: copy from the sparse uBOL-home/chromium base
+    copyDirSync(platform.baseDir, platform.outDir, (name) => !EXCLUDE_FROM_OUTPUT.has(name));
+  }
 
 
   // Copy compiled AdGuard ruleset files (main/, scripting/, etc.)
@@ -204,12 +217,13 @@ function mergePlatform(platform, compiledTmpDir) {
   const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
   const ourRulesets  = compiledManifest.declarative_net_request?.rule_resources ?? [];
   const seen = new Set(baseRulesets.map(r => r.id));
+  const { groupOverrides } = OVERRIDES;
   baseManifest.declarative_net_request = {
     ...baseManifest.declarative_net_request,
     rule_resources: [
       ...baseRulesets,
       ...ourRulesets.filter(r => !seen.has(r.id)),
-    ],
+    ].map(r => groupOverrides[r.id]?.enabled === false ? { ...r, enabled: false } : r),
   };
   fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(baseManifest, null, 2) + '\n');
 
@@ -338,6 +352,9 @@ function applyPatches(outDir, platformId) {
         }
         continue;
       }
+
+      // Do not copy pipeline config files to the extension output
+      if (entry.name === 'filter-overrides.json') continue;
 
       // _locales patches are handled by rebrandAllLocales to guarantee correct key counts.
       // Skip them here to avoid ordering bugs where the target file may not yet be correct.
