@@ -149,14 +149,6 @@ function mergePlatform(platform, compiledTmpDir) {
   const EXCLUDE_FROM_OUTPUT = new Set(['README.md', 'log.txt', 'background.html', 'filter-overrides.json']);
   copyDirSync(platform.baseDir, platform.outDir, (name) => !EXCLUDE_FROM_OUTPUT.has(name));
 
-  // Diagnostic: verify locale was copied correctly
-  const diagLocalePath = path.join(platform.outDir, '_locales', 'en', 'messages.json');
-  if (fs.existsSync(diagLocalePath)) {
-    const diagKeys = Object.keys(JSON.parse(fs.readFileSync(diagLocalePath, 'utf8')));
-    console.log(`  [diag] After base copy: _locales/en/messages.json has ${diagKeys.length} keys`);
-  } else {
-    console.log(`  [diag] WARNING: _locales/en/messages.json MISSING after base copy!`);
-  }
 
   // Copy compiled AdGuard ruleset files (main/, scripting/, etc.)
   const rulesetsDir = path.join(compiledTmpDir, 'rulesets');
@@ -314,12 +306,7 @@ function applyPatches(outDir, platformId) {
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     const original = fs.existsSync(targetPath) ? JSON.parse(fs.readFileSync(targetPath, 'utf8')) : {};
     const patch    = JSON.parse(fs.readFileSync(src, 'utf8'));
-    const result   = { ...original, ...patch };
-    // Diagnostic for en messages
-    if (targetPath.includes('_locales') && targetPath.includes('en') && targetPath.endsWith('messages.json')) {
-      console.log(`  [diag] applyPatchJson en locale: original=${Object.keys(original).length} keys, patch=${Object.keys(patch).length} keys, result=${Object.keys(result).length} keys`);
-    }
-    fs.writeFileSync(targetPath, JSON.stringify(result, null, 2) + '\n');
+    fs.writeFileSync(targetPath, JSON.stringify({ ...original, ...patch }, null, 2) + '\n');
   }
 
   function processDir(srcDir, destDir, relDir = '') {
@@ -351,6 +338,10 @@ function applyPatches(outDir, platformId) {
         }
         continue;
       }
+
+      // _locales patches are handled by rebrandAllLocales to guarantee correct key counts.
+      // Skip them here to avoid ordering bugs where the target file may not yet be correct.
+      if (relDir.startsWith('_locales')) continue;
 
       // *.patch.json → merge into matching *.json
       if (entry.name.endsWith('.patch.json')) {
@@ -436,26 +427,38 @@ function summary(compiledTmpDir) {
   }
 }
 
-// Brute-force rebrand: rewrite extName in EVERY locale's messages.json.
-// Our en/ patch only covers English — AMO reads ALL locales and may pick
-// any one as the canonical add-on name.  This ensures zero leakage.
+// Rebrand all locales and apply locale patches.
+// This runs AFTER applyPatches so we have full control over the final locale state.
+// We read the locale patch files directly from PATCHES/_locales/ and merge them
+// into the already-copied base messages.json, guaranteeing correct key counts
+// regardless of file processing order in applyPatches.
 function rebrandAllLocales(outDir) {
   const localesDir = path.join(outDir, '_locales');
   if (!fs.existsSync(localesDir)) return;
 
   const NEW_NAME = 'uBO Lite Expanded';
+  const patchLocalesDir = path.join(PATCHES, '_locales');
 
   for (const locale of fs.readdirSync(localesDir)) {
     const msgPath = path.join(localesDir, locale, 'messages.json');
     if (!fs.existsSync(msgPath)) continue;
 
-    const msgs = JSON.parse(fs.readFileSync(msgPath, 'utf8'));
+    let msgs = JSON.parse(fs.readFileSync(msgPath, 'utf8'));
+
+    // Apply locale-specific patch if one exists in patches/_locales/<locale>/messages.patch.json
+    const localePatchPath = path.join(patchLocalesDir, locale, 'messages.patch.json');
+    if (fs.existsSync(localePatchPath)) {
+      const patch = JSON.parse(fs.readFileSync(localePatchPath, 'utf8'));
+      msgs = { ...msgs, ...patch };
+    }
+
+    // Always update extName for every locale
     if (msgs.extName && msgs.extName.message) {
       msgs.extName.message = NEW_NAME;
     }
     fs.writeFileSync(msgPath, JSON.stringify(msgs, null, 2) + '\n');
   }
-  console.log(`  Rebranded extName → "${NEW_NAME}" in all locales`);
+  console.log(`  Rebranded extName in all locales, applied locale patches`);
 }
 
 async function main() {
