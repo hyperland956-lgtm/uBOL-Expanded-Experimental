@@ -1,3 +1,5 @@
+> [!NOTE] This fork is unstable, use the official version until this is fixed.
+
 # uBOL Expanded
 
 **uBOL Expanded** (uBOL-Exp) is an independent fork of [uBO Lite](https://github.com/uBlockOrigin/uBOL-home) which is an efficient, MV3-based content blocker by Raymond Hill. This fork bundles extra AdGuard filter lists on top of the standard uBO Lite defaults, with no extra CPU or memory cost.
