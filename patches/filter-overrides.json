@@ -1,7 +1,9 @@
 {
   "groupOverrides": {
     "easylist":    { "group": "ads" },
-    "easyprivacy": { "group": "privacy" }
+    "easyprivacy": { "group": "privacy" },
+    "pgl":         { "enabled": false },
+    "urlhaus-full": { "enabled": false }
   },
   "exclusivePairs": [
     ["easylist",    "adguard-base-extra"],

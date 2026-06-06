@@ -29,5 +29,15 @@
     "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
     "url": "https://filters.adtidy.org/extension/ublock/filters/14.txt",
     "cacheFile": "cache/adguard-annoyances.txt"
+  },
+  {
+    "id": "oisd-nsfw-extra",
+    "name": "NSFW Blocker",
+    "group": "miscellaneous",
+    "enabled": false,
+    "tags": "nsfw adult oisd",
+    "homeURL": "https://oisd.nl/",
+    "url": "https://nsfw-small.oisd.nl/",
+    "cacheFile": "cache/oisd-nsfw.txt"
   }
 ]
