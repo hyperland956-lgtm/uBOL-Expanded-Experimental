@@ -314,7 +314,12 @@ function applyPatches(outDir, platformId) {
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     const original = fs.existsSync(targetPath) ? JSON.parse(fs.readFileSync(targetPath, 'utf8')) : {};
     const patch    = JSON.parse(fs.readFileSync(src, 'utf8'));
-    fs.writeFileSync(targetPath, JSON.stringify({ ...original, ...patch }, null, 2) + '\n');
+    const result   = { ...original, ...patch };
+    // Diagnostic for en messages
+    if (targetPath.includes('_locales') && targetPath.includes('en') && targetPath.endsWith('messages.json')) {
+      console.log(`  [diag] applyPatchJson en locale: original=${Object.keys(original).length} keys, patch=${Object.keys(patch).length} keys, result=${Object.keys(result).length} keys`);
+    }
+    fs.writeFileSync(targetPath, JSON.stringify(result, null, 2) + '\n');
   }
 
   function processDir(srcDir, destDir, relDir = '') {
