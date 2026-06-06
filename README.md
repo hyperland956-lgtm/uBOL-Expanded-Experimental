@@ -1,6 +1,6 @@
-> [!WARNING]
-![Maintenance](https://shields.io)
+![Maintenance](https://img.shields.io/badge/Status-Under%20Construction-yellow?style=for-the-badge)
 
+> [!WARNING]
 > Still under construction; the [official version](https://github.com/uBlockOrigin/uBOL-home) is recommended for now.
 
 
