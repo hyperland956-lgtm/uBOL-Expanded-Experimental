@@ -1,4 +1,8 @@
-> [!NOTE] This fork is unstable, use the official version until this is fixed.
+> [!WARNING]
+![Maintenance](https://shields.io)
+
+> Still under construction; the [official version](https://github.com/uBlockOrigin/uBOL-home) is recommended for now.
+
 
 # uBOL Expanded
 
