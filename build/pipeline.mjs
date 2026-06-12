@@ -220,6 +220,26 @@ function mergePlatform(platform, compiledTmpDir) {
       ...baseManifest.declarative_net_request,
       rule_resources: chromiumManifest.declarative_net_request.rule_resources,
     };
+
+    // Firefox uses host_permissions for <all_urls> (granted at install), NOT optional_permissions.
+    // The Chromium base manifest has optional_permissions: ["<all_urls>"] which means Firefox
+    // would require the user to explicitly grant access — and without it, no rules fire at all.
+    // Correct the permission model to match real uBO Lite Firefox.
+    if (baseManifest.optional_permissions) {
+      const allUrls = baseManifest.optional_permissions.filter(p => p === '<all_urls>');
+      const remaining = baseManifest.optional_permissions.filter(p => p !== '<all_urls>');
+      if (allUrls.length > 0) {
+        baseManifest.host_permissions = [
+          ...(baseManifest.host_permissions ?? []),
+          ...allUrls,
+        ];
+      }
+      if (remaining.length > 0) {
+        baseManifest.optional_permissions = remaining;
+      } else {
+        delete baseManifest.optional_permissions;
+      }
+    }
   } else {
     // Chromium: Merge new AdGuard rule_resources into base
     const compiledManifest = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
