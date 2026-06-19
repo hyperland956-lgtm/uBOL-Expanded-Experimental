@@ -1,10 +1,6 @@
 {
   "author": "cudios",
   "short_name": "uBOL-Exp",
-  "background": {
-    "scripts": ["/js/background.js"],
-    "type": "module"
-  },
   "browser_specific_settings": {
     "gecko": {
       "id": "ubolexpanded@cudios",
@@ -12,18 +8,6 @@
     },
     "gecko_android": {
       "strict_min_version": "128.0"
-    }
-  },
-  "options_ui": {
-    "open_in_tab": true,
-    "page": "dashboard.html"
-  },
-  "commands": {
-    "enter-zapper-mode": {
-      "description": "__MSG_zapperTipEnter__"
-    },
-    "enter-picker-mode": {
-      "description": "__MSG_pickerTipEnter__"
     }
   }
 }
