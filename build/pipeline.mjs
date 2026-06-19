@@ -17,6 +17,9 @@ const PLATFORMS = [
 const WORKSPACE = path.join(ROOT, 'build-workspace');
 const MV3_DATA  = path.join(ROOT, 'mv3-data');
 
+// Build version: set by CI via $VERSION env var, or fall back to manifest's existing version.
+const BUILD_VERSION = process.env.VERSION || '';
+
 function copyFileSync(src, dest) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(src, dest);
@@ -148,15 +151,11 @@ function mergePlatform(platform, compiledTmpDir) {
   const EXCLUDE_FROM_OUTPUT = new Set(['README.md', 'log.txt', 'background.html', 'filter-overrides.json']);
 
   if (platform.id === 'firefox') {
-    // Firefox gets the full Chromium output as its base — the uBOL-home/firefox sparse
-    // clone is missing picker-ui.html, zapper-ui.html, unpicker-ui.html, strictblock.html
-    // and other UI files that exist in the Chromium release. Chromium output has everything.
+    // Firefox gets the full Chromium output as its base.
+    // Gorhill ships IDENTICAL JS (including js/offscreen/) to both platforms.
+    // The ONLY difference between real Chromium and Firefox releases is manifest.json.
     const chromiumOut = PLATFORMS[0].outDir;
     copyDirSync(chromiumOut, platform.outDir);
-
-    // Remove Chromium-only API: offscreen (Firefox doesn't support chrome.offscreen)
-    const offscreenDir = path.join(platform.outDir, 'js', 'offscreen');
-    if (fs.existsSync(offscreenDir)) fs.rmSync(offscreenDir, { recursive: true, force: true });
   } else {
     // Chromium: copy from the sparse uBOL-home/chromium base
     copyDirSync(platform.baseDir, platform.outDir, (name) => !EXCLUDE_FROM_OUTPUT.has(name));
@@ -208,40 +207,60 @@ function mergePlatform(platform, compiledTmpDir) {
     fs.writeFileSync(outDetailsPath, JSON.stringify(mergedDetails, null, 2) + '\n');
   }
 
-  // Merge manifest rule_resources.
-  // Start from the platform's own base manifest (correct permissions, no Chromium-only
-  // keys like offscreen/userScripts/incognito:split).
-  const baseManifest = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
-
+  // Build the manifest for this platform.
   if (platform.id === 'firefox') {
-    // Firefox inherits the already-completed rule_resources from the Chromium output
-    const chromiumManifest = JSON.parse(fs.readFileSync(path.join(platform.outDir, 'manifest.json'), 'utf8'));
-    baseManifest.declarative_net_request = {
-      ...baseManifest.declarative_net_request,
-      rule_resources: chromiumManifest.declarative_net_request.rule_resources,
-    };
+    // Derive Firefox manifest FROM the completed Chromium output manifest.
+    // The stale uBOL-home/firefox/manifest.json is not used — gorhill only differs
+    // by a handful of keys between platforms, so we patch those surgically.
+    const manifest = JSON.parse(fs.readFileSync(path.join(platform.outDir, 'manifest.json'), 'utf8'));
 
-    // Firefox uses host_permissions for <all_urls> (granted at install), NOT optional_permissions.
-    // The Chromium base manifest has optional_permissions: ["<all_urls>"] which means Firefox
-    // would require the user to explicitly grant access — and without it, no rules fire at all.
-    // Correct the permission model to match real uBO Lite Firefox.
-    if (baseManifest.optional_permissions) {
-      const allUrls = baseManifest.optional_permissions.filter(p => p === '<all_urls>');
-      const remaining = baseManifest.optional_permissions.filter(p => p !== '<all_urls>');
-      if (allUrls.length > 0) {
-        baseManifest.host_permissions = [
-          ...(baseManifest.host_permissions ?? []),
-          ...allUrls,
-        ];
+    // Switch background from service_worker to scripts (Firefox MV3)
+    manifest.background = { scripts: ['/js/background.js'], type: 'module' };
+
+    // Firefox uses host_permissions (granted at install), not optional_permissions.
+    // Chromium may have <all_urls> in optional_permissions — move it to host_permissions.
+    if (!manifest.host_permissions) manifest.host_permissions = [];
+    if (manifest.optional_permissions) {
+      const allUrls = manifest.optional_permissions.filter(p => p === '<all_urls>');
+      const remaining = manifest.optional_permissions.filter(p => p !== '<all_urls>');
+      if (allUrls.length > 0 && !manifest.host_permissions.includes('<all_urls>')) {
+        manifest.host_permissions.push('<all_urls>');
       }
       if (remaining.length > 0) {
-        baseManifest.optional_permissions = remaining;
+        manifest.optional_permissions = remaining;
       } else {
-        delete baseManifest.optional_permissions;
+        delete manifest.optional_permissions;
       }
     }
+
+    // options_ui: open in its own tab, not inline in about:addons
+    manifest.options_ui = { open_in_tab: true, page: 'dashboard.html' };
+
+    // Remove Chromium-only keys that Firefox doesn't support
+    delete manifest.incognito;                  // Firefox doesn't support "split"
+    if (manifest.permissions) {
+      manifest.permissions = manifest.permissions.filter(
+        p => p !== 'offscreen' && p !== 'userScripts'
+      );
+    }
+
+    // web_accessible_resources: add HTML page entries matching real uBO Lite Firefox.
+    // The Chromium manifest may be missing the separate HTML entries that Firefox needs
+    // for strict-block, picker, zapper, and unpicker UI pages.
+    const war = manifest.web_accessible_resources ?? [];
+    const htmlPages = ['/strictblock.html', '/zapper-ui.html', '/picker-ui.html', '/unpicker-ui.html'];
+    for (const page of htmlPages) {
+      const already = war.some(e => (e.resources ?? []).includes(page));
+      if (!already) {
+        war.unshift({ resources: [page], matches: ['<all_urls>'] });
+      }
+    }
+    manifest.web_accessible_resources = war;
+
+    fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   } else {
-    // Chromium: Merge new AdGuard rule_resources into base
+    // Chromium: Merge new AdGuard rule_resources into the base manifest
+    const baseManifest = JSON.parse(fs.readFileSync(path.join(platform.baseDir, 'manifest.json'), 'utf8'));
     const compiledManifest = JSON.parse(fs.readFileSync(path.join(compiledTmpDir, 'manifest.json'), 'utf8'));
     const baseRulesets = baseManifest.declarative_net_request?.rule_resources ?? [];
     const ourRulesets  = compiledManifest.declarative_net_request?.rule_resources ?? [];
@@ -254,64 +273,101 @@ function mergePlatform(platform, compiledTmpDir) {
         ...ourRulesets.filter(r => !seen.has(r.id)),
       ].map(r => groupOverrides[r.id]?.enabled === false ? { ...r, enabled: false } : r),
     };
+    fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(baseManifest, null, 2) + '\n');
   }
-  fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(baseManifest, null, 2) + '\n');
 
   // Strip debug rulesets — dev-only, not needed in any shipped build
   const debugDir = path.join(platform.outDir, 'rulesets', 'debug');
   if (fs.existsSync(debugDir)) fs.rmSync(debugDir, { recursive: true, force: true });
 
   // AMO linter hard-fails on any file >5MB (FILE_TOO_LARGE, tier-1 error).
-  // adguard-tracking-extra.json exceeds this. Split it into parts <4MB each,
-  // register all parts in the manifest, remove the original single entry.
+  // Generic split: find ANY oversized ruleset JSON in rulesets/main/ and split it
+  // into parts <4MB each, then update both manifest AND ruleset-details.json.
   if (platform.id === 'firefox') {
     const mainDir = path.join(platform.outDir, 'rulesets', 'main');
-    const srcFile = path.join(mainDir, 'adguard-tracking-extra.json');
-    if (fs.existsSync(srcFile)) {
-      const MAX_BYTES = 4 * 1024 * 1024; // 4 MB safety margin
-      const rules = JSON.parse(fs.readFileSync(srcFile, 'utf8'));
-      const parts = [];
-      let current = [];
-      let currentSize = 2; // for "[]"
-      for (const rule of rules) {
-        const entry = JSON.stringify(rule);
-        const addSize = entry.length + (current.length > 0 ? 1 : 0); // comma
-        if (currentSize + addSize > MAX_BYTES && current.length > 0) {
-          parts.push(current);
-          current = [];
-          currentSize = 2;
+    const MAX_BYTES = 4 * 1024 * 1024; // 4 MB safety margin
+
+    if (fs.existsSync(mainDir)) {
+      for (const file of fs.readdirSync(mainDir)) {
+        if (!file.endsWith('.json')) continue;
+        const srcFile = path.join(mainDir, file);
+        if (fs.statSync(srcFile).size <= 5 * 1024 * 1024) continue; // only split files >5MB
+
+        const baseId = file.replace('.json', '');
+        const rules = JSON.parse(fs.readFileSync(srcFile, 'utf8'));
+        const parts = [];
+        let current = [];
+        let currentSize = 2; // for "[]"
+        for (const rule of rules) {
+          const entry = JSON.stringify(rule);
+          const addSize = entry.length + (current.length > 0 ? 1 : 0);
+          if (currentSize + addSize > MAX_BYTES && current.length > 0) {
+            parts.push(current);
+            current = [];
+            currentSize = 2;
+          }
+          current.push(rule);
+          currentSize += entry.length + (current.length > 1 ? 1 : 0);
         }
-        current.push(rule);
-        currentSize += entry.length + (current.length > 1 ? 1 : 0);
-      }
-      if (current.length > 0) parts.push(current);
+        if (current.length > 0) parts.push(current);
 
-      fs.rmSync(srcFile); // remove original
-      const partIds = [];
-      for (let i = 0; i < parts.length; i++) {
-        const partId   = `adguard-tracking-extra-${i}`;
-        const partFile = path.join(mainDir, `${partId}.json`);
-        fs.writeFileSync(partFile, JSON.stringify(parts[i], null, 0) + '\n');
-        partIds.push(partId);
-      }
+        if (parts.length <= 1) continue; // no split needed
 
-      // Update manifest: replace original entry with one entry per part
-      const manifestPath = path.join(platform.outDir, 'manifest.json');
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      const rr = manifest.declarative_net_request?.rule_resources ?? [];
-      const origIdx = rr.findIndex(r => r.id === 'adguard-tracking-extra');
-      if (origIdx !== -1) {
-        const orig = rr[origIdx];
-        const newEntries = partIds.map(id => ({
-          ...orig,
-          id,
-          path: orig.path.replace('adguard-tracking-extra', id),
-        }));
-        rr.splice(origIdx, 1, ...newEntries);
-        manifest.declarative_net_request.rule_resources = rr;
-        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+        fs.rmSync(srcFile);
+        const partIds = [];
+        for (let i = 0; i < parts.length; i++) {
+          const partId   = `${baseId}-${i}`;
+          const partFile = path.join(mainDir, `${partId}.json`);
+          fs.writeFileSync(partFile, JSON.stringify(parts[i], null, 0) + '\n');
+          partIds.push(partId);
+        }
+
+        // Update manifest: replace original entry with one entry per part
+        const manifestPath = path.join(platform.outDir, 'manifest.json');
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const rr = manifest.declarative_net_request?.rule_resources ?? [];
+        const origIdx = rr.findIndex(r => r.id === baseId);
+        if (origIdx !== -1) {
+          const orig = rr[origIdx];
+          const newEntries = partIds.map(id => ({
+            ...orig,
+            id,
+            path: orig.path.replace(baseId, id),
+          }));
+          rr.splice(origIdx, 1, ...newEntries);
+          manifest.declarative_net_request.rule_resources = rr;
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+        }
+
+        // Update ruleset-details.json: replace original entry with one per part
+        // so that manifest IDs and ruleset-details IDs stay perfectly in sync.
+        // Without this, enableRulesets() validates against ruleset-details (passes)
+        // but dnr.updateEnabledRulesets() validates against manifest (fails) → silent error.
+        const detailsPath = path.join(platform.outDir, 'rulesets', 'ruleset-details.json');
+        if (fs.existsSync(detailsPath)) {
+          const details = JSON.parse(fs.readFileSync(detailsPath, 'utf8'));
+          const detIdx = details.findIndex(d => d.id === baseId);
+          if (detIdx !== -1) {
+            const origDetail = details[detIdx];
+            // Distribute rule/filter counts evenly across parts for display purposes
+            const plainPerPart = Math.ceil((origDetail.rules?.plain ?? 0) / parts.length);
+            const regexPerPart = Math.ceil((origDetail.rules?.regex ?? 0) / parts.length);
+            const newDetails = partIds.map((id, i) => ({
+              ...origDetail,
+              id,
+              name: `${origDetail.name} (part ${i + 1})`,
+              rules: {
+                plain: i < parts.length - 1 ? plainPerPart : (origDetail.rules?.plain ?? 0) - plainPerPart * (parts.length - 1),
+                regex: i < parts.length - 1 ? regexPerPart : (origDetail.rules?.regex ?? 0) - regexPerPart * (parts.length - 1),
+              },
+            }));
+            details.splice(detIdx, 1, ...newDetails);
+            fs.writeFileSync(detailsPath, JSON.stringify(details, null, 2) + '\n');
+          }
+        }
+
+        console.log(`  Firefox: split ${baseId} into ${parts.length} parts (AMO 5MB limit)`);
       }
-      console.log(`  Firefox: split adguard-tracking-extra into ${parts.length} parts (AMO 5MB limit)`);
     }
   }
 
@@ -397,11 +453,17 @@ function applyPatches(outDir, platformId) {
       }
 
       // *.inject-after.js → append to matching js file in outDir
+      // Idempotency: Firefox inherits already-patched Chromium JS, so check
+      // whether the content was already injected to prevent duplication.
       if (entry.name.endsWith('.inject-after.js')) {
         const baseName  = entry.name.replace('.inject-after.js', '.js');
         const targetJs  = path.join(outDir, 'js', baseName);
         if (fs.existsSync(targetJs)) {
-          fs.appendFileSync(targetJs, '\n' + fs.readFileSync(src, 'utf8'));
+          const snippet = fs.readFileSync(src, 'utf8');
+          const existing = fs.readFileSync(targetJs, 'utf8');
+          if (!existing.includes(snippet.trim())) {
+            fs.appendFileSync(targetJs, '\n' + snippet);
+          }
         }
         continue;
       }
@@ -526,6 +588,18 @@ async function main() {
     mergePlatform(platform, compiledTmpDir);
     applyPatches(platform.outDir, platform.id);
     rebrandAllLocales(platform.outDir);
+
+    // Stamp the build version into the manifest (after all patches so nothing overwrites it).
+    // Without this, Firefox inherits uBOL-home's stale version ('2024.9.22.986') which causes
+    // patchDefaultRulesets() to incorrectly treat every startup as a version change and
+    // reset user filter selections back to defaults.
+    if (BUILD_VERSION) {
+      const manifestPath = path.join(platform.outDir, 'manifest.json');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest.version = BUILD_VERSION;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+      console.log(`  Stamped version: ${BUILD_VERSION}`);
+    }
   }
 
   summary(compiledTmpDir);
