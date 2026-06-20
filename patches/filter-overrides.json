@@ -1,9 +1,11 @@
 {
   "groupOverrides": {
-    "easylist":    { "group": "ads" },
-    "easyprivacy": { "group": "privacy" },
-    "pgl":         { "enabled": false },
-    "urlhaus-full": { "enabled": false }
+    "easylist":            { "group": "ads" },
+    "easyprivacy":         { "group": "privacy" },
+    "pgl":                 { "enabled": false, "group": null },
+    "urlhaus-full":        { "enabled": false },
+    "ublock-experimental": { "group": "default" },
+    "ubol-tests":          { "group": "default" }
   },
   "exclusivePairs": [
     ["easylist",    "adguard-base-extra"],
