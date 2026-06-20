@@ -10,6 +10,15 @@
     "cacheFile": "cache/adguard-base.txt"
   },
   {
+    "id": "adguard-base-opt",
+    "name": "AdGuard Base + EasyList (Optimized)",
+    "enabled": false,
+    "tags": "ads adguard easylist optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/2_optimized.txt",
+    "cacheFile": "cache/adguard-base-opt.txt"
+  },
+  {
     "id": "adguard-tracking-extra",
     "name": "AdGuard Tracking Protection",
     "group": "privacy",
@@ -20,15 +29,155 @@
     "cacheFile": "cache/adguard-tracking.txt"
   },
   {
+    "id": "adguard-tracking-opt",
+    "name": "AdGuard Tracking Protection (Optimized)",
+    "enabled": false,
+    "tags": "tracking privacy adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/3_optimized.txt",
+    "cacheFile": "cache/adguard-tracking-opt.txt"
+  },
+  {
+    "id": "adguard-dns-opt",
+    "name": "AdGuard DNS filter (Optimized)",
+    "enabled": false,
+    "tags": "dns privacy adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/15_optimized.txt",
+    "cacheFile": "cache/adguard-dns-opt.txt"
+  },
+  {
     "id": "adguard-annoyances-extra",
     "name": "AdGuard Annoyances",
     "group": "annoyances",
-    "parent": "AdGuard Annoyances",
     "enabled": false,
     "tags": "annoyances cookies popups banners adguard",
     "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
     "url": "https://filters.adtidy.org/extension/ublock/filters/14.txt",
     "cacheFile": "cache/adguard-annoyances.txt"
+  },
+  {
+    "id": "adguard-annoyances-opt",
+    "name": "AdGuard Annoyances (Optimized)",
+    "enabled": false,
+    "tags": "annoyances cookies popups banners adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/14_optimized.txt",
+    "cacheFile": "cache/adguard-annoyances-opt.txt"
+  },
+  {
+    "id": "adguard-cookie-extra",
+    "name": "AdGuard Cookie Notices",
+    "group": "annoyances",
+    "enabled": false,
+    "tags": "annoyances cookies consent adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/18.txt",
+    "cacheFile": "cache/adguard-cookie.txt"
+  },
+  {
+    "id": "adguard-cookie-opt",
+    "name": "AdGuard Cookie Notices (Optimized)",
+    "enabled": false,
+    "tags": "annoyances cookies consent adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/18_optimized.txt",
+    "cacheFile": "cache/adguard-cookie-opt.txt"
+  },
+  {
+    "id": "adguard-popups-extra",
+    "name": "AdGuard Popups",
+    "group": "annoyances",
+    "enabled": false,
+    "tags": "annoyances popups adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/19.txt",
+    "cacheFile": "cache/adguard-popups.txt"
+  },
+  {
+    "id": "adguard-popups-opt",
+    "name": "AdGuard Popups (Optimized)",
+    "enabled": false,
+    "tags": "annoyances popups adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/19_optimized.txt",
+    "cacheFile": "cache/adguard-popups-opt.txt"
+  },
+  {
+    "id": "adguard-mobile-extra",
+    "name": "AdGuard Mobile App Banners",
+    "group": "annoyances",
+    "enabled": false,
+    "tags": "annoyances mobile banners adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/20.txt",
+    "cacheFile": "cache/adguard-mobile.txt"
+  },
+  {
+    "id": "adguard-mobile-opt",
+    "name": "AdGuard Mobile App Banners (Optimized)",
+    "enabled": false,
+    "tags": "annoyances mobile banners adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/20_optimized.txt",
+    "cacheFile": "cache/adguard-mobile-opt.txt"
+  },
+  {
+    "id": "adguard-other-extra",
+    "name": "AdGuard Other Annoyances",
+    "group": "annoyances",
+    "enabled": false,
+    "tags": "annoyances adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/21.txt",
+    "cacheFile": "cache/adguard-other.txt"
+  },
+  {
+    "id": "adguard-other-opt",
+    "name": "AdGuard Other Annoyances (Optimized)",
+    "enabled": false,
+    "tags": "annoyances adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/21_optimized.txt",
+    "cacheFile": "cache/adguard-other-opt.txt"
+  },
+  {
+    "id": "adguard-widgets-extra",
+    "name": "AdGuard Widgets",
+    "group": "annoyances",
+    "enabled": false,
+    "tags": "annoyances widgets adguard",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/22.txt",
+    "cacheFile": "cache/adguard-widgets.txt"
+  },
+  {
+    "id": "adguard-widgets-opt",
+    "name": "AdGuard Widgets (Optimized)",
+    "enabled": false,
+    "tags": "annoyances widgets adguard optimized",
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/22_optimized.txt",
+    "cacheFile": "cache/adguard-widgets-opt.txt"
+  },
+  {
+    "id": "fanboy-annoyances-extra",
+    "name": "Fanboy's Annoyances",
+    "group": "annoyances",
+    "enabled": false,
+    "tags": "annoyances fanboy",
+    "homeURL": "https://fanboy.co.nz/",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/122.txt",
+    "cacheFile": "cache/fanboy-annoyances.txt"
+  },
+  {
+    "id": "fanboy-annoyances-opt",
+    "name": "Fanboy's Annoyances (Optimized)",
+    "enabled": false,
+    "tags": "annoyances fanboy optimized",
+    "homeURL": "https://fanboy.co.nz/",
+    "url": "https://filters.adtidy.org/extension/ublock/filters/122_optimized.txt",
+    "cacheFile": "cache/fanboy-annoyances-opt.txt"
   },
   {
     "id": "oisd-nsfw-extra",
