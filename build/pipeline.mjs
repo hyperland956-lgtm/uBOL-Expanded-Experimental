@@ -189,9 +189,13 @@ function mergePlatform(platform, compiledTmpDir) {
     const newDetails  = JSON.parse(fs.readFileSync(newDetailsPath, 'utf8'));
     // Apply group overrides to existing rulesets
     const { groupOverrides } = OVERRIDES;
-    const mergedDetails = baseDetails.map(d =>
-      groupOverrides[d.id] ? { ...d, ...groupOverrides[d.id] } : d
-    );
+    const mergedDetails = baseDetails.map(d => {
+      if (!groupOverrides[d.id]) return d;
+      const merged = { ...d, ...groupOverrides[d.id] };
+      // group: null in overrides means "move to Miscellaneous" (UI checks group === undefined)
+      if (merged.group === null) delete merged.group;
+      return merged;
+    });
     // Append our new AdGuard entries, applying group/parent/enabled from extra-filters.json
     const seenIds = new Set(mergedDetails.map(d => d.id));
     for (const d of newDetails) {
@@ -247,6 +251,7 @@ function mergePlatform(platform, compiledTmpDir) {
     // web_accessible_resources: add HTML page entries matching real uBO Lite Firefox.
     // The Chromium manifest may be missing the separate HTML entries that Firefox needs
     // for strict-block, picker, zapper, and unpicker UI pages.
+    // Also strip use_dynamic_url — it's Chrome-only; Firefox warns on it.
     const war = manifest.web_accessible_resources ?? [];
     const htmlPages = ['/strictblock.html', '/zapper-ui.html', '/picker-ui.html', '/unpicker-ui.html'];
     for (const page of htmlPages) {
@@ -255,7 +260,14 @@ function mergePlatform(platform, compiledTmpDir) {
         war.unshift({ resources: [page], matches: ['<all_urls>'] });
       }
     }
-    manifest.web_accessible_resources = war;
+    // Remove Chrome-only use_dynamic_url from every WAR entry
+    manifest.web_accessible_resources = war.map(e => {
+      const { use_dynamic_url, ...rest } = e;
+      return rest;
+    });
+
+    // Remove top-level 'storage' key (Chrome managed-storage schema — Firefox warns on it)
+    delete manifest.storage;
 
     fs.writeFileSync(path.join(platform.outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   } else {
@@ -282,10 +294,14 @@ function mergePlatform(platform, compiledTmpDir) {
 
   // AMO linter hard-fails on any file >5MB (FILE_TOO_LARGE, tier-1 error).
   // Generic split: find ANY oversized ruleset JSON in rulesets/main/ and split it
-  // into parts <4MB each, then update both manifest AND ruleset-details.json.
+  // into parts <4MB each. The split is TRANSPARENT to the UI:
+  //   - ruleset-details.json keeps the ORIGINAL single entry (one checkbox in dashboard)
+  //   - manifest.json gets the split parts + a stub for the original ID
+  //   - rulesets/split-map.json maps original->parts for the JS transparency layer
   if (platform.id === 'firefox') {
     const mainDir = path.join(platform.outDir, 'rulesets', 'main');
     const MAX_BYTES = 4 * 1024 * 1024; // 4 MB safety margin
+    const splitMap = {}; // { originalId: [partId0, partId1, ...] }
 
     if (fs.existsSync(mainDir)) {
       for (const file of fs.readdirSync(mainDir)) {
@@ -313,7 +329,11 @@ function mergePlatform(platform, compiledTmpDir) {
 
         if (parts.length <= 1) continue; // no split needed
 
-        fs.rmSync(srcFile);
+        // Replace the oversized file with an empty stub (0 rules).
+        // The stub keeps the original ID valid in the manifest so that
+        // patchDefaultRulesets() doesn't strip it from saved config.
+        fs.writeFileSync(srcFile, '[]\n');
+
         const partIds = [];
         for (let i = 0; i < parts.length; i++) {
           const partId   = `${baseId}-${i}`;
@@ -321,8 +341,10 @@ function mergePlatform(platform, compiledTmpDir) {
           fs.writeFileSync(partFile, JSON.stringify(parts[i], null, 0) + '\n');
           partIds.push(partId);
         }
+        splitMap[baseId] = partIds;
 
-        // Update manifest: replace original entry with one entry per part
+        // Update manifest: KEEP the original entry (now pointing to the stub),
+        // and ADD one entry per split part alongside it.
         const manifestPath = path.join(platform.outDir, 'manifest.json');
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
         const rr = manifest.declarative_net_request?.rule_resources ?? [];
@@ -333,41 +355,27 @@ function mergePlatform(platform, compiledTmpDir) {
             ...orig,
             id,
             path: orig.path.replace(baseId, id),
+            enabled: false, // parts start disabled; the JS patch enables them
           }));
-          rr.splice(origIdx, 1, ...newEntries);
+          // Insert parts right after the original entry
+          rr.splice(origIdx + 1, 0, ...newEntries);
           manifest.declarative_net_request.rule_resources = rr;
           fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
         }
 
-        // Update ruleset-details.json: replace original entry with one per part
-        // so that manifest IDs and ruleset-details IDs stay perfectly in sync.
-        // Without this, enableRulesets() validates against ruleset-details (passes)
-        // but dnr.updateEnabledRulesets() validates against manifest (fails) → silent error.
-        const detailsPath = path.join(platform.outDir, 'rulesets', 'ruleset-details.json');
-        if (fs.existsSync(detailsPath)) {
-          const details = JSON.parse(fs.readFileSync(detailsPath, 'utf8'));
-          const detIdx = details.findIndex(d => d.id === baseId);
-          if (detIdx !== -1) {
-            const origDetail = details[detIdx];
-            // Distribute rule/filter counts evenly across parts for display purposes
-            const plainPerPart = Math.ceil((origDetail.rules?.plain ?? 0) / parts.length);
-            const regexPerPart = Math.ceil((origDetail.rules?.regex ?? 0) / parts.length);
-            const newDetails = partIds.map((id, i) => ({
-              ...origDetail,
-              id,
-              name: `${origDetail.name} (part ${i + 1})`,
-              rules: {
-                plain: i < parts.length - 1 ? plainPerPart : (origDetail.rules?.plain ?? 0) - plainPerPart * (parts.length - 1),
-                regex: i < parts.length - 1 ? regexPerPart : (origDetail.rules?.regex ?? 0) - regexPerPart * (parts.length - 1),
-              },
-            }));
-            details.splice(detIdx, 1, ...newDetails);
-            fs.writeFileSync(detailsPath, JSON.stringify(details, null, 2) + '\n');
-          }
-        }
+        // DO NOT split ruleset-details.json — keep the original single entry.
+        // The UI shows one checkbox. The JS transparency layer handles the rest.
 
         console.log(`  Firefox: split ${baseId} into ${parts.length} parts (AMO 5MB limit)`);
       }
+    }
+
+    // Write the split map so the JS transparency layer knows which IDs to expand.
+    // If no splits occurred, write an empty map — the JS handles that gracefully.
+    const splitMapPath = path.join(platform.outDir, 'rulesets', 'split-map.json');
+    fs.writeFileSync(splitMapPath, JSON.stringify(splitMap, null, 2) + '\n');
+    if (Object.keys(splitMap).length > 0) {
+      console.log(`  Firefox: wrote split-map.json for ${Object.keys(splitMap).length} split ruleset(s)`);
     }
   }
 
