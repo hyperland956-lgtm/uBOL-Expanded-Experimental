@@ -4,15 +4,15 @@
     "description": "extension name shown on the extensions page"
   },
   "extShortDesc": {
-    "message": "uBO Lite with extra filter lists — AdGuard Base, Tracking Protection, and Annoyances. Blocks ads, trackers, and more.",
+    "message": "uBO Lite with extra filter lists and other improvements. Blocks ads, trackers, and more.",
     "description": "Chrome Web Store description, max 132 characters"
   },
   "dashboardName": {
-    "message": "uBOL-Expanded — Dashboard",
+    "message": "uBOL-Expanded: Dashboard",
     "description": "browser tab title for the dashboard"
   },
   "strictblockSentence1": {
-    "message": "uBOL-Expanded has prevented the following page from loading:",
+    "message": "uBO-Lite-Expanded has prevented the following page from loading:",
     "description": "sentence used in the strict-blocked page"
   },
   "3pGroupDefault": {
