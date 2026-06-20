@@ -1,7 +1,7 @@
 [
   {
     "id": "adguard-base-extra",
-    "name": "AdGuard Base filter",
+    "name": "AdGuard Base filter (includes EasyList)",
     "group": "ads",
     "enabled": false,
     "tags": "ads adguard easylist",
