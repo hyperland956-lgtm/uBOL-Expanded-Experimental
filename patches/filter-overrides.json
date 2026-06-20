@@ -8,7 +8,16 @@
     "ubol-tests":          { "group": "default" }
   },
   "exclusivePairs": [
-    ["easylist",    "adguard-base-extra"],
-    ["easyprivacy", "adguard-tracking-extra"]
+    ["easylist", "adguard-base-extra"],
+    ["easyprivacy", "adguard-tracking-extra"],
+    ["adguard-base-extra", "adguard-base-opt"],
+    ["adguard-tracking-extra", "adguard-tracking-opt"],
+    ["adguard-annoyances-extra", "adguard-annoyances-opt"],
+    ["adguard-cookie-extra", "adguard-cookie-opt"],
+    ["adguard-popups-extra", "adguard-popups-opt"],
+    ["adguard-mobile-extra", "adguard-mobile-opt"],
+    ["adguard-other-extra", "adguard-other-opt"],
+    ["adguard-widgets-extra", "adguard-widgets-opt"],
+    ["fanboy-annoyances-extra", "fanboy-annoyances-opt"]
   ]
 }
