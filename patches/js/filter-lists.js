@@ -2,151 +2,133 @@ import { dom, qs$, qsa$ } from './dom.js';
 import { hashFromIterable, nodeFromTemplate } from './dashboard.js';
 import { i18n, i18n$ } from './i18n.js';
 import { localRead, localWrite, sendMessage } from './ext.js';
+import { faIconsInit } from './fa-icons.js';
 
 export const rulesetMap = new Map();
 
 let cachedRulesetData = {};
-let hideUnusedSet = new Set(['regions']);
 
 const DNR_RULE_LIMIT = 30000;
 
 const COLUMN_CONFIG = {
-    easylist: ['easylist', 'easyprivacy', 'fanboy-annoyances-extra', 'fanboy-annoyances-opt'],
-    adguard:  ['adguard-base-extra', 'adguard-base-opt',
-                'adguard-tracking-extra', 'adguard-tracking-opt',
-                'adguard-dns-opt',
-                'adguard-annoyances-extra', 'adguard-annoyances-opt',
-                'adguard-cookie-extra', 'adguard-cookie-opt',
-                'adguard-popups-extra', 'adguard-popups-opt',
-                'adguard-mobile-extra', 'adguard-mobile-opt',
-                'adguard-other-extra', 'adguard-other-opt',
-                'adguard-widgets-extra', 'adguard-widgets-opt'],
+    easylist: new Set(['easylist', 'easyprivacy', 'fanboy-annoyances-extra', 'fanboy-annoyances-opt']),
+    adguard:  new Set([
+        'adguard-base-extra',    'adguard-base-opt',
+        'adguard-tracking-extra','adguard-tracking-opt',
+        'adguard-dns-opt',
+        'adguard-annoyances-extra', 'adguard-annoyances-opt',
+        'adguard-cookie-extra',  'adguard-cookie-opt',
+        'adguard-popups-extra',  'adguard-popups-opt',
+        'adguard-mobile-extra',  'adguard-mobile-opt',
+        'adguard-other-extra',   'adguard-other-opt',
+        'adguard-widgets-extra', 'adguard-widgets-opt',
+    ]),
 };
 
 const VARIANT_PAIRS = [
-    { base: 'easylist',               full: 'easylist',                  opt: null },
-    { base: 'easyprivacy',            full: 'easyprivacy',               opt: null },
-    { base: 'adguard-base',           full: 'adguard-base-extra',        opt: 'adguard-base-opt' },
-    { base: 'adguard-tracking',       full: 'adguard-tracking-extra',    opt: 'adguard-tracking-opt' },
-    { base: 'adguard-dns',            full: null,                        opt: 'adguard-dns-opt' },
-    { base: 'adguard-annoyances',     full: 'adguard-annoyances-extra',  opt: 'adguard-annoyances-opt' },
-    { base: 'adguard-cookie',         full: 'adguard-cookie-extra',      opt: 'adguard-cookie-opt' },
-    { base: 'adguard-popups',         full: 'adguard-popups-extra',      opt: 'adguard-popups-opt' },
-    { base: 'adguard-mobile',         full: 'adguard-mobile-extra',      opt: 'adguard-mobile-opt' },
-    { base: 'adguard-other',          full: 'adguard-other-extra',       opt: 'adguard-other-opt' },
-    { base: 'adguard-widgets',        full: 'adguard-widgets-extra',     opt: 'adguard-widgets-opt' },
-    { base: 'fanboy-annoyances',      full: 'fanboy-annoyances-extra',   opt: 'fanboy-annoyances-opt' },
+    { full: 'easylist',               opt: null },
+    { full: 'easyprivacy',            opt: null },
+    { full: 'adguard-base-extra',     opt: 'adguard-base-opt' },
+    { full: 'adguard-tracking-extra', opt: 'adguard-tracking-opt' },
+    { full: null,                     opt: 'adguard-dns-opt' },
+    { full: 'adguard-annoyances-extra',opt:'adguard-annoyances-opt' },
+    { full: 'adguard-cookie-extra',   opt: 'adguard-cookie-opt' },
+    { full: 'adguard-popups-extra',   opt: 'adguard-popups-opt' },
+    { full: 'adguard-mobile-extra',   opt: 'adguard-mobile-opt' },
+    { full: 'adguard-other-extra',    opt: 'adguard-other-opt' },
+    { full: 'adguard-widgets-extra',  opt: 'adguard-widgets-opt' },
+    { full: 'fanboy-annoyances-extra',opt: 'fanboy-annoyances-opt' },
 ];
 
-const variantPairByMember = new Map();
+const variantPairOf = new Map();
 for (const pair of VARIANT_PAIRS) {
-    if (pair.full) variantPairByMember.set(pair.full, pair);
-    if (pair.opt)  variantPairByMember.set(pair.opt,  pair);
+    if (pair.full) variantPairOf.set(pair.full, pair);
+    if (pair.opt)  variantPairOf.set(pair.opt,  pair);
 }
 
-const idsInVariantPairs = new Set([
-    ...VARIANT_PAIRS.map(p => p.full).filter(Boolean),
-    ...VARIANT_PAIRS.map(p => p.opt).filter(Boolean),
-]);
+const isPairedId = id => variantPairOf.has(id);
 
-function rulesetStats(rulesetId) {
-    const d = rulesetMap.get(rulesetId);
+function rulesetStats(id) {
+    const d = rulesetMap.get(id);
     if (!d) return null;
     return {
-        ruleCount: (d.rules?.plain ?? 0) + (d.rules?.regex ?? 0),
+        ruleCount:   (d.rules?.plain ?? 0) + (d.rules?.regex ?? 0),
         filterCount: d.filters?.accepted ?? 0,
     };
 }
 
-function renderNumber(n) { return n.toLocaleString(); }
-
-function getEnabledIds() {
-    const checked = new Set();
-    for (const input of qsa$('#ubol-lists input[type="checkbox"][data-rulesetid]:checked')) {
-        checked.add(input.dataset.rulesetid);
-    }
-    for (const btn of qsa$('#ubol-lists .ubol-variant-btn.active[data-rulesetid]')) {
-        const id = btn.dataset.rulesetid;
-        const cb = btn.closest('.ubol-entry')?.querySelector('input[type="checkbox"]');
-        if (cb?.checked) checked.add(id);
-    }
-    return [...checked];
-}
-
-function updateBudgetBar() {
-    const bar = qs$('#ubol-budget-bar');
-    if (!bar) return;
-    let total = 0;
-    for (const input of qsa$('#ubol-lists input[type="checkbox"][data-rulesetid]:checked')) {
-        const s = rulesetStats(input.dataset.rulesetid);
-        if (s) total += s.ruleCount;
-    }
-    for (const btn of qsa$('#ubol-lists .ubol-variant-btn.active[data-rulesetid]')) {
-        const groupCb = btn.closest('.ubol-entry')?.querySelector('input[type="checkbox"]');
-        if (!groupCb?.checked) continue;
-        const s = rulesetStats(btn.dataset.rulesetid);
-        if (s) total += s.ruleCount;
-    }
-    const pct = Math.min(100, (total / DNR_RULE_LIMIT) * 100);
-    const fill = qs$('#ubol-budget-fill');
-    const label = qs$('#ubol-budget-label');
-    const warn = qs$('#ubol-budget-warn');
-    if (fill) fill.style.width = pct.toFixed(1) + '%';
-    if (fill) {
-        fill.className = 'ubol-budget-fill' + (pct >= 95 ? ' danger' : pct >= 75 ? ' warn' : '');
-    }
-    if (label) label.textContent = `${renderNumber(total)} / ${renderNumber(DNR_RULE_LIMIT)} rules`;
-    if (warn)  warn.hidden = pct < 90;
-}
-
-function buildBudgetBar(container) {
-    const bar = document.createElement('div');
-    bar.id = 'ubol-budget-bar';
-    bar.innerHTML = `
-        <div class="ubol-budget-track">
-            <div id="ubol-budget-fill" class="ubol-budget-fill"></div>
-        </div>
-        <span id="ubol-budget-label"></span>
-        <span id="ubol-budget-warn" hidden>Near limit — disable some filters</span>
-    `.trim();
-    container.appendChild(bar);
-}
-
-function buildCheckboxSvg() {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', 'M1.73,12.91 8.1,19.28 22.79,4.59');
-    svg.appendChild(path);
-    return svg;
-}
-
-function buildCheckbox(id, name, checked, isDefault) {
-    const wrap = document.createElement('span');
-    wrap.className = 'input checkbox';
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.id = 'cb-' + id;
-    input.dataset.rulesetid = id;
-    input.checked = checked;
-    wrap.appendChild(input);
-    wrap.appendChild(buildCheckboxSvg());
-    const label = document.createElement('label');
-    label.htmlFor = 'cb-' + id;
-    label.className = 'ubol-list-name' + (isDefault ? ' is-default' : '');
-    label.textContent = name;
-    return { wrap, label };
-}
+function renderNum(n) { return n.toLocaleString(); }
 
 function statsTitle(id) {
     const s = rulesetStats(id);
     if (!s) return '';
     return i18n$('perRulesetStats')
-        .replace('{{ruleCount}}', renderNumber(s.ruleCount))
-        .replace('{{filterCount}}', renderNumber(s.filterCount));
+        .replace('{{ruleCount}}',   renderNum(s.ruleCount))
+        .replace('{{filterCount}}', renderNum(s.filterCount));
 }
 
-function buildHomeLink(homeURL) {
+function updateBudgetBar() {
+    const bar = qs$('#ubol-budget-bar');
+    if (!bar) return;
+
+    let total = 0;
+    for (const input of qsa$('#lists input[type="checkbox"][data-rulesetid]:checked')) {
+        const s = rulesetStats(input.dataset.rulesetid);
+        if (s) total += s.ruleCount;
+    }
+    for (const btn of qsa$('#lists .ubol-variant-btn.active')) {
+        const entry = btn.closest('.ubol-entry');
+        const cbEl  = entry?.querySelector('input[data-variant-group]');
+        if (!cbEl?.checked) continue;
+        const s = rulesetStats(btn.dataset.rulesetid);
+        if (s) total += s.ruleCount;
+    }
+
+    const pct   = Math.min(100, (total / DNR_RULE_LIMIT) * 100);
+    const fill  = bar.querySelector('.ubol-budget-fill');
+    const label = bar.querySelector('.ubol-budget-label');
+    const warn  = bar.querySelector('.ubol-budget-warn');
+
+    if (fill) {
+        fill.style.width = pct.toFixed(1) + '%';
+        fill.className = 'ubol-budget-fill' + (pct >= 95 ? ' danger' : pct >= 75 ? ' warn' : '');
+    }
+    if (label) label.textContent = `${renderNum(total)} / ${renderNum(DNR_RULE_LIMIT)} rules`;
+    if (warn)  warn.hidden = pct < 90;
+}
+
+function buildBudgetBar() {
+    const existing = qs$('#ubol-budget-bar');
+    if (existing) return;
+    const container = qs$('[data-pane-related="rulesets"]');
+    if (!container) return;
+    const bar = document.createElement('div');
+    bar.id = 'ubol-budget-bar';
+    bar.innerHTML =
+        '<div class="ubol-budget-track"><div class="ubol-budget-fill"></div></div>' +
+        '<span class="ubol-budget-label"></span>' +
+        '<span class="ubol-budget-warn" hidden>Near limit</span>';
+    container.appendChild(bar);
+}
+
+function makeCheckbox(id, checked) {
+    const wrap = document.createElement('span');
+    wrap.className = 'input checkbox';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = checked;
+    input.dataset.rulesetid = id;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M1.73,12.91 8.1,19.28 22.79,4.59');
+    svg.appendChild(path);
+    wrap.appendChild(input);
+    wrap.appendChild(svg);
+    return { wrap, input };
+}
+
+function makeHomeLink(homeURL) {
     if (!homeURL) return null;
     const a = document.createElement('a');
     a.className = 'fa-icon support';
@@ -156,130 +138,126 @@ function buildHomeLink(homeURL) {
     return a;
 }
 
-function buildVariantButtons(pair, enabledIds) {
-    const row = document.createElement('div');
-    row.className = 'ubol-variant-row';
+function buildVariantEntry(pair, enabledIds) {
+    const primaryId = pair.full ?? pair.opt;
+    const d = rulesetMap.get(primaryId);
+    const activeId = pair.full && enabledIds.has(pair.full) ? pair.full
+                   : pair.opt  && enabledIds.has(pair.opt)  ? pair.opt
+                   : null;
+    const isOn = activeId !== null;
 
-    for (const [label, id] of [['Full', pair.full], ['Optimized', pair.opt]]) {
-        if (!id) continue;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'ubol-variant-btn' + (enabledIds.has(id) ? ' active' : '');
-        btn.dataset.rulesetid = id;
-        btn.textContent = label;
-        const s = rulesetStats(id);
-        if (s) btn.title = statsTitle(id);
-        row.appendChild(btn);
+    const entry = document.createElement('div');
+    entry.className = 'ubol-entry' + (isOn ? '' : ' disabled');
+    entry.dataset.variantGroup = primaryId;
+
+    const bar = document.createElement('div');
+    bar.className = 'ubol-bar';
+
+    const { wrap, input } = makeCheckbox('', isOn);
+    input.removeAttribute('data-rulesetid');
+    input.dataset.variantGroup = primaryId;
+
+    const label = document.createElement('label');
+    label.className = 'ubol-list-name' + (d?.enabled ? ' is-default' : '');
+    label.textContent = d?.name ?? primaryId;
+
+    const iconBar = document.createElement('span');
+    iconBar.className = 'ubol-iconbar';
+    const hl = makeHomeLink(d?.homeURL);
+    if (hl) iconBar.appendChild(hl);
+
+    bar.appendChild(wrap);
+    bar.appendChild(label);
+    bar.appendChild(iconBar);
+    entry.appendChild(bar);
+
+    if (pair.full && pair.opt) {
+        const row = document.createElement('div');
+        row.className = 'ubol-variant-row';
+
+        for (const [btnLabel, id] of [['Full', pair.full], ['Optimized', pair.opt]]) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ubol-variant-btn' + (activeId === id ? ' active' : '');
+            btn.dataset.rulesetid = id;
+            btn.textContent = btnLabel;
+            const s = rulesetStats(id);
+            if (s) btn.title = statsTitle(id);
+            row.appendChild(btn);
+        }
+        entry.appendChild(row);
     }
-    return row;
+
+    return entry;
 }
 
-function buildLeafEntry(ruleset, enabledIds) {
+function buildSimpleEntry(ruleset, enabledIds) {
     const entry = document.createElement('div');
-    entry.className = 'ubol-entry listEntry';
-    entry.dataset.role = 'leaf';
+    entry.className = 'ubol-entry';
     entry.dataset.rulesetid = ruleset.id;
 
     const bar = document.createElement('div');
     bar.className = 'ubol-bar';
 
-    const pair = variantPairByMember.get(ruleset.id);
-    const isGroupEntry = pair && (pair.full === ruleset.id || (!pair.full && pair.opt === ruleset.id));
+    const { wrap, input } = makeCheckbox(ruleset.id, enabledIds.has(ruleset.id));
+    const s = rulesetStats(ruleset.id);
+    if (s) wrap.title = statsTitle(ruleset.id);
 
-    if (isGroupEntry && (pair.full && pair.opt)) {
-        const representativeId = pair.full ?? pair.opt;
-        const d = rulesetMap.get(representativeId);
-        const activeId = enabledIds.has(pair.full) ? pair.full : enabledIds.has(pair.opt) ? pair.opt : null;
-        const isEnabled = activeId !== null;
-
-        const { wrap, label } = buildCheckbox(representativeId + '-grp', d?.name ?? representativeId, isEnabled, d?.enabled);
-        wrap.querySelector('input').dataset.rulesetid = '';
-        wrap.querySelector('input').dataset.variantGroup = representativeId;
-        bar.appendChild(wrap);
-        bar.appendChild(label);
-
-        const iconBar = document.createElement('span');
-        iconBar.className = 'ubol-iconbar';
-        const hl = buildHomeLink(d?.homeURL);
-        if (hl) iconBar.appendChild(hl);
-        bar.appendChild(iconBar);
-
-        entry.appendChild(bar);
-        entry.appendChild(buildVariantButtons(pair, enabledIds));
-        entry.classList.toggle('disabled', !isEnabled);
-        return entry;
-    }
-
-    const on = enabledIds.has(ruleset.id);
-    const { wrap, label } = buildCheckbox(ruleset.id, ruleset.name, on, ruleset.enabled);
-    if (rulesetStats(ruleset.id)) wrap.querySelector('input').title = statsTitle(ruleset.id);
-    bar.appendChild(wrap);
-    bar.appendChild(label);
+    const label = document.createElement('label');
+    label.className = 'ubol-list-name' + (ruleset.enabled ? ' is-default' : '');
+    label.textContent = ruleset.name;
 
     const iconBar = document.createElement('span');
     iconBar.className = 'ubol-iconbar';
-    const hl = buildHomeLink(ruleset.homeURL);
+    const hl = makeHomeLink(ruleset.homeURL);
     if (hl) iconBar.appendChild(hl);
-    bar.appendChild(iconBar);
 
+    bar.appendChild(wrap);
+    bar.appendChild(label);
+    bar.appendChild(iconBar);
     entry.appendChild(bar);
     return entry;
 }
 
 function buildSection(title, rulesets, enabledIds) {
+    if (!rulesets.length) return null;
     const section = document.createElement('div');
-    section.className = 'ubol-section listEntry';
-    section.dataset.role = 'rootnode';
+    section.className = 'ubol-section';
 
-    const header = document.createElement('div');
-    header.className = 'ubol-section-header';
     const h3 = document.createElement('h3');
     h3.className = 'ubol-section-title';
     h3.textContent = title;
-    header.appendChild(h3);
-    section.appendChild(header);
+    section.appendChild(h3);
+
+    const inner = document.createElement('div');
+    inner.className = 'ubol-entries';
 
     const rendered = new Set();
-    const entries = document.createElement('div');
-    entries.className = 'ubol-entries';
-
     for (const ruleset of rulesets) {
         if (rendered.has(ruleset.id)) continue;
-        const pair = variantPairByMember.get(ruleset.id);
+        const pair = variantPairOf.get(ruleset.id);
+
         if (pair && pair.full && pair.opt) {
             if (ruleset.id !== pair.full) continue;
             rendered.add(pair.full);
             rendered.add(pair.opt);
-            entries.appendChild(buildLeafEntry(rulesetMap.get(pair.full), enabledIds));
+            inner.appendChild(buildVariantEntry(pair, enabledIds));
+        } else if (pair && (!pair.full || !pair.opt)) {
+            rendered.add(ruleset.id);
+            inner.appendChild(buildVariantEntry(pair, enabledIds));
         } else {
             rendered.add(ruleset.id);
-            entries.appendChild(buildLeafEntry(ruleset, enabledIds));
+            inner.appendChild(buildSimpleEntry(ruleset, enabledIds));
         }
     }
 
-    section.appendChild(entries);
+    section.appendChild(inner);
     return section;
 }
 
-function buildColumn(title, groups) {
-    const col = document.createElement('div');
-    col.className = 'ubol-col';
-    if (title) {
-        const h = document.createElement('div');
-        h.className = 'ubol-col-title';
-        h.textContent = title;
-        col.appendChild(h);
-    }
-    for (const [sectionTitle, rulesets, enabledIds] of groups) {
-        if (!rulesets.length) continue;
-        col.appendChild(buildSection(sectionTitle, rulesets, enabledIds));
-    }
-    return col;
-}
-
-function groupLabel(groupId) {
-    const name = i18n$(`3pGroup${groupId.charAt(0).toUpperCase()}${groupId.slice(1)}`);
-    return name || groupId;
+function groupLabel(id) {
+    const key = `3pGroup${id.charAt(0).toUpperCase()}${id.slice(1)}`;
+    return i18n$(key) || id;
 }
 
 export function renderFilterLists(rulesetData) {
@@ -287,114 +265,126 @@ export function renderFilterLists(rulesetData) {
     const { enabledRulesets, rulesetDetails } = cachedRulesetData;
 
     rulesetDetails.forEach(r => rulesetMap.set(r.id, r));
+    const enabledIds = new Set(enabledRulesets);
 
-    const enabledSet = new Set(enabledRulesets);
+    const listsEl = qs$('#lists');
+    if (!listsEl) return;
+    listsEl.innerHTML = '';
 
-    const lists = qs$('#lists');
-    if (!lists) return;
-    lists.innerHTML = '';
-    lists.classList.add('ubol-lists');
-    lists.id = 'ubol-lists';
-
-    const rulesetsPane = qs$('[data-pane-related="rulesets"]');
-    if (rulesetsPane && !qs$('#ubol-budget-bar')) {
-        buildBudgetBar(rulesetsPane);
-    }
+    buildBudgetBar();
 
     const byGroup = { default: [], ads: [], privacy: [], malware: [], annoyances: [], misc: [], regions: [] };
     for (const r of rulesetDetails) {
         const g = r.group ?? 'misc';
-        if (byGroup[g]) byGroup[g].push(r);
-        else byGroup.misc.push(r);
+        (byGroup[g] ?? byGroup.misc).push(r);
     }
 
-    const elCol = new Set(COLUMN_CONFIG.easylist);
-    const adCol = new Set(COLUMN_CONFIG.adguard);
+    const { easylist: elSet, adguard: adSet } = COLUMN_CONFIG;
+    const filterCol = (list, set) => list.filter(r => set.has(r.id) || (variantPairOf.get(r.id) && set.has(variantPairOf.get(r.id).full ?? variantPairOf.get(r.id).opt)));
+    const filterCommon = list => list.filter(r => !elSet.has(r.id) && !adSet.has(r.id) && !isPairedId(r.id));
 
-    const filterByCol = (list, colSet) => list.filter(r => colSet.has(r.id));
-    const filterCommon = (list) => list.filter(r => !elCol.has(r.id) && !adCol.has(r.id));
+    const allInCols = new Set([...elSet, ...adSet, ...VARIANT_PAIRS.flatMap(p => [p.full, p.opt].filter(Boolean))]);
+    const filterCommonAll = list => list.filter(r => !allInCols.has(r.id));
+
+    const frag = document.createDocumentFragment();
+
+    const builtinSection = buildSection(groupLabel('default'), byGroup.default, enabledIds);
+    if (builtinSection) { builtinSection.classList.add('ubol-builtin'); frag.appendChild(builtinSection); }
 
     const grid = document.createElement('div');
     grid.className = 'ubol-grid';
 
-    const easylistCol = buildColumn('EasyList', [
-        [groupLabel('ads'),          filterByCol(byGroup.ads, elCol),       enabledSet],
-        [groupLabel('privacy'),      filterByCol(byGroup.privacy, elCol),   enabledSet],
-        [groupLabel('malware'),      filterByCol(byGroup.malware, elCol),   enabledSet],
-        [groupLabel('annoyances'),   filterByCol(byGroup.annoyances, elCol),enabledSet],
-    ]);
-    easylistCol.classList.add('ubol-col-easylist');
+    const elCol = document.createElement('div');
+    elCol.className = 'ubol-col ubol-col-easylist';
+    const elTitle = document.createElement('div');
+    elTitle.className = 'ubol-col-title';
+    elTitle.textContent = 'EasyList';
+    elCol.appendChild(elTitle);
 
-    const adguardCol = buildColumn('AdGuard', [
-        [groupLabel('ads'),          filterByCol(byGroup.ads, adCol),       enabledSet],
-        [groupLabel('privacy'),      filterByCol(byGroup.privacy, adCol),   enabledSet],
-        [groupLabel('annoyances'),   filterByCol(byGroup.annoyances, adCol),enabledSet],
-    ]);
-    adguardCol.classList.add('ubol-col-adguard');
+    for (const [gid, groupRulesets] of [
+        ['ads',        byGroup.ads],
+        ['privacy',    byGroup.privacy],
+        ['malware',    byGroup.malware],
+        ['annoyances', byGroup.annoyances],
+    ]) {
+        const s = buildSection(groupLabel(gid), groupRulesets.filter(r => elSet.has(r.id)), enabledIds);
+        if (s) elCol.appendChild(s);
+    }
 
-    grid.appendChild(easylistCol);
-    grid.appendChild(adguardCol);
-    lists.appendChild(grid);
+    const adCol = document.createElement('div');
+    adCol.className = 'ubol-col ubol-col-adguard';
+    const adTitle = document.createElement('div');
+    adTitle.className = 'ubol-col-title';
+    adTitle.textContent = 'AdGuard';
+    adCol.appendChild(adTitle);
 
-    const topSection = buildSection(groupLabel('default'), byGroup.default, enabledSet);
-    topSection.classList.add('ubol-builtin');
-    lists.insertBefore(topSection, grid);
+    for (const [gid, groupRulesets] of [
+        ['ads',        byGroup.ads],
+        ['privacy',    byGroup.privacy],
+        ['annoyances', byGroup.annoyances],
+    ]) {
+        const filtered = groupRulesets.filter(r => {
+            if (adSet.has(r.id)) return true;
+            const pair = variantPairOf.get(r.id);
+            return pair && (adSet.has(pair.full) || adSet.has(pair.opt));
+        });
+        const s = buildSection(groupLabel(gid), filtered, enabledIds);
+        if (s) adCol.appendChild(s);
+    }
+
+    grid.appendChild(elCol);
+    grid.appendChild(adCol);
+    frag.appendChild(grid);
 
     const miscRulesets = [
-        ...filterCommon(byGroup.ads),
-        ...filterCommon(byGroup.privacy),
-        ...filterCommon(byGroup.malware),
-        ...filterCommon(byGroup.misc),
+        ...filterCommonAll(byGroup.ads),
+        ...filterCommonAll(byGroup.privacy),
+        ...filterCommonAll(byGroup.malware),
+        ...filterCommonAll(byGroup.misc),
     ];
-    if (miscRulesets.length) {
-        lists.appendChild(buildSection(groupLabel('misc'), miscRulesets, enabledSet));
-    }
+    const miscSection = buildSection(groupLabel('misc'), miscRulesets, enabledIds);
+    if (miscSection) frag.appendChild(miscSection);
 
-    if (byGroup.regions.length) {
-        lists.appendChild(buildSection(groupLabel('regions'), byGroup.regions, enabledSet));
-    }
+    const regionsSection = buildSection(groupLabel('regions'), byGroup.regions, enabledIds);
+    if (regionsSection) frag.appendChild(regionsSection);
 
+    listsEl.appendChild(frag);
+    faIconsInit(listsEl);
     updateBudgetBar();
-    dom.cl.remove(dom.body, 'loading');
 }
 
 const applyEnabledRulesets = (() => {
+    const collect = () => {
+        const ids = [];
+        for (const input of qsa$('#lists input[type="checkbox"][data-rulesetid]:checked')) {
+            if (input.dataset.rulesetid) ids.push(input.dataset.rulesetid);
+        }
+        for (const btn of qsa$('#lists .ubol-variant-btn.active')) {
+            const entry = btn.closest('.ubol-entry');
+            const cbEl  = entry?.querySelector('input[data-variant-group]');
+            if (!cbEl?.checked) continue;
+            if (btn.dataset.rulesetid) ids.push(btn.dataset.rulesetid);
+        }
+        return ids;
+    };
+
     const apply = async () => {
         dom.cl.add(dom.body, 'committing');
-
-        const enabledRulesets = [];
-
-        for (const input of qsa$('#ubol-lists input[type="checkbox"][data-rulesetid]:checked')) {
-            const id = input.dataset.rulesetid;
-            if (id) enabledRulesets.push(id);
-        }
-
-        for (const btn of qsa$('#ubol-lists .ubol-variant-btn.active[data-rulesetid]')) {
-            const groupCb = btn.closest('.ubol-entry')?.querySelector('input[data-variant-group]');
-            if (!groupCb?.checked) continue;
-            enabledRulesets.push(btn.dataset.rulesetid);
-        }
-
+        const enabledRulesets = collect();
         const modified = hashFromIterable(enabledRulesets) !==
             hashFromIterable(cachedRulesetData.enabledRulesets);
         if (modified) {
             const result = await sendMessage({ what: 'applyRulesets', enabledRulesets });
             dom.text('#dnrError', result?.error || '');
         }
-
         dom.cl.remove(dom.body, 'committing');
     };
 
     let timer;
-    self.addEventListener('beforeunload', () => {
-        if (timer !== undefined) return;
-        clearTimeout(timer);
-        timer = undefined;
-        apply();
-    });
+    self.addEventListener('beforeunload', () => { clearTimeout(timer); apply(); });
 
-    return function () {
-        if (timer !== undefined) clearTimeout(timer);
+    return () => {
+        clearTimeout(timer);
         timer = setTimeout(() => {
             timer = undefined;
             if (dom.cl.has(dom.body, 'committing')) applyEnabledRulesets();
@@ -403,26 +393,39 @@ const applyEnabledRulesets = (() => {
     };
 })();
 
-dom.on('#ubol-lists', 'change', 'input[type="checkbox"][data-rulesetid]', ev => {
+dom.on('#lists', 'change', 'input[data-rulesetid]', () => {
     updateBudgetBar();
     applyEnabledRulesets();
 });
 
-dom.on('#ubol-lists', 'change', 'input[type="checkbox"][data-variant-group]', ev => {
+dom.on('#lists', 'change', 'input[data-variant-group]', ev => {
     const input = ev.target;
     const entry = input.closest('.ubol-entry');
     if (!entry) return;
-    entry.classList.toggle('disabled', !input.checked);
+
+    const isOn = input.checked;
+    entry.classList.toggle('disabled', !isOn);
+
+    if (isOn) {
+        const row = entry.querySelector('.ubol-variant-row');
+        if (row) {
+            const hasActive = row.querySelector('.ubol-variant-btn.active');
+            if (!hasActive) {
+                const firstBtn = row.querySelector('.ubol-variant-btn');
+                if (firstBtn) firstBtn.classList.add('active');
+            }
+        }
+    }
+
     updateBudgetBar();
     applyEnabledRulesets();
 });
 
-dom.on('#ubol-lists', 'click', '.ubol-variant-btn', ev => {
+dom.on('#lists', 'click', '.ubol-variant-btn', ev => {
     const btn = ev.target.closest('.ubol-variant-btn');
     if (!btn) return;
     const entry = btn.closest('.ubol-entry');
-    const groupCb = entry?.querySelector('input[data-variant-group]');
-    if (!groupCb?.checked) return;
+    if (!entry || entry.classList.contains('disabled')) return;
 
     const row = btn.closest('.ubol-variant-row');
     for (const b of row.querySelectorAll('.ubol-variant-btn')) {
@@ -432,18 +435,15 @@ dom.on('#ubol-lists', 'click', '.ubol-variant-btn', ev => {
     applyEnabledRulesets();
 });
 
-const searchFilterLists = () => {
+dom.on('#findInLists', 'input', () => {
     const pattern = dom.prop('#findInLists', 'value') || '';
-    dom.cl.toggle('#ubol-lists', 'searchMode', pattern !== '');
+    dom.cl.toggle('#lists', 'searchMode', pattern !== '');
     if (!pattern) return;
     const re = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    for (const entry of qsa$('#ubol-lists .ubol-entry')) {
-        const id = entry.dataset.rulesetid;
-        if (!id) continue;
+    for (const entry of qsa$('#lists .ubol-entry')) {
+        const id = entry.dataset.rulesetid || entry.dataset.variantGroup || '';
         const d = rulesetMap.get(id);
-        const haystack = [d?.name ?? '', id, d?.group ?? '', d?.tags ?? ''].join(' ');
-        dom.cl.toggle(entry, 'searchMatch', re.test(haystack));
+        const hay = [d?.name ?? '', id, d?.group ?? '', d?.tags ?? ''].join(' ');
+        dom.cl.toggle(entry, 'searchMatch', re.test(hay));
     }
-};
-
-dom.on('#findInLists', 'input', searchFilterLists);
+});
