@@ -1,181 +1,735 @@
-/* uBOL-Expanded popup tweaks */
+/* ============================================================
+   uBOL-Expanded: Custom UI Overhaul
+   Black-and-white premium minimalist aesthetic
+   ============================================================ */
 
+/* ---- Design Tokens ---- */
+:root {
+    --ui-bg-page:       #f8f8f8;
+    --ui-bg-surface:    #ffffff;
+    --ui-bg-subtle:     #f0f0f0;
+    --ui-bg-muted:      #e8e8e8;
+    --ui-fg-primary:    #0a0a0a;
+    --ui-fg-secondary:  #444444;
+    --ui-fg-muted:      #888888;
+    --ui-fg-faint:      #bbbbbb;
+    --ui-border:        #e2e2e2;
+    --ui-border-strong: #c0c0c0;
+    --ui-accent:        #0a0a0a;
+    --ui-accent-hover:  #333333;
+    --ui-danger:        #c0392b;
+    --ui-success:       #1a7a3c;
+    --ui-warn:          #b05e00;
+    --ui-radius-sm:     6px;
+    --ui-radius:        10px;
+    --ui-radius-lg:     14px;
+    --ui-shadow-sm:     0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --ui-shadow:        0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+    --ui-shadow-lg:     0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    --ui-transition:    0.15s ease;
+    --ui-sidebar-w:     0px;
+    --ui-content-max:   1100px;
+    --ui-content-pad:   5vw;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ui-bg-page:       #111111;
+        --ui-bg-surface:    #1a1a1a;
+        --ui-bg-subtle:     #222222;
+        --ui-bg-muted:      #2c2c2c;
+        --ui-fg-primary:    #f0f0f0;
+        --ui-fg-secondary:  #b0b0b0;
+        --ui-fg-muted:      #707070;
+        --ui-fg-faint:      #444444;
+        --ui-border:        #2a2a2a;
+        --ui-border-strong: #404040;
+        --ui-accent:        #f0f0f0;
+        --ui-accent-hover:  #cccccc;
+        --ui-danger:        #e05c4a;
+        --ui-success:       #4caf72;
+        --ui-warn:          #e5a040;
+        --ui-shadow-sm:     0 1px 3px rgba(0,0,0,0.30);
+        --ui-shadow:        0 2px 8px rgba(0,0,0,0.35);
+        --ui-shadow-lg:     0 4px 16px rgba(0,0,0,0.45);
+    }
+}
+
+
+/* ---- Reset the 640px cage ---- */
+body {
+    align-items: unset !important;
+    background-color: var(--ui-bg-page) !important;
+    color: var(--ui-fg-primary) !important;
+    fill: var(--ui-fg-primary) !important;
+    display: block !important;
+}
+
+body > * {
+    width: auto !important;
+    max-width: none !important;
+}
+
+
+/* ---- Global content wrapper ---- */
+body > header,
+body > section {
+    box-sizing: border-box !important;
+    max-width: var(--ui-content-max) !important;
+    margin-inline: auto !important;
+    padding-inline: var(--ui-content-pad) !important;
+}
+
+
+/* ============================================================
+   HEADER & NAVIGATION (top, stays on top)
+   ============================================================ */
+
+header {
+    background-color: var(--ui-bg-surface) !important;
+    border-bottom: 1px solid var(--ui-border) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+    padding-top: 0 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 200 !important;
+}
+
+nav#dashboard-nav {
+    align-items: center !important;
+    border-bottom: none !important;
+    display: flex !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow-x: auto !important;
+}
+
+nav#dashboard-nav .logo {
+    margin-inline-end: 8px !important;
+    padding: 10px 8px 10px 0 !important;
+    width: 22px !important;
+    flex-shrink: 0 !important;
+}
+
+nav#dashboard-nav .logo img {
+    display: block !important;
+    width: 22px !important;
+    height: 22px !important;
+    opacity: 0.9 !important;
+}
+
+nav#dashboard-nav .tabButton {
+    background: transparent !important;
+    border: 0 !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    color: var(--ui-fg-muted) !important;
+    fill: var(--ui-fg-muted) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em !important;
+    padding: 12px 16px 10px !important;
+    transition: color var(--ui-transition), border-color var(--ui-transition) !important;
+    white-space: nowrap !important;
+}
+
+nav#dashboard-nav .tabButton:hover {
+    background: transparent !important;
+    border-bottom-color: var(--ui-border-strong) !important;
+    color: var(--ui-fg-primary) !important;
+    fill: var(--ui-fg-primary) !important;
+}
+
+body[data-pane="settings"]  #dashboard-nav .tabButton[data-pane="settings"],
+body[data-pane="rulesets"]  #dashboard-nav .tabButton[data-pane="rulesets"],
+body[data-pane="filters"]   #dashboard-nav .tabButton[data-pane="filters"],
+body[data-pane="develop"]   #dashboard-nav .tabButton[data-pane="develop"],
+body[data-pane="about"]     #dashboard-nav .tabButton[data-pane="about"] {
+    background: transparent !important;
+    border-bottom: 2px solid var(--ui-accent) !important;
+    color: var(--ui-fg-primary) !important;
+    fill: var(--ui-fg-primary) !important;
+    font-weight: 600 !important;
+}
+
+/* Rulesets subheader (search + spinner) */
+header [data-pane-related="rulesets"] {
+    padding-block: 6px !important;
+    padding-inline: var(--ui-content-pad) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    border-top: 1px solid var(--ui-border) !important;
+    max-width: var(--ui-content-max) !important;
+    margin-inline: auto !important;
+}
+
+#findInLists {
+    flex: 1 !important;
+    max-width: 320px !important;
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    color: var(--ui-fg-primary) !important;
+    font-size: 13px !important;
+    padding: 5px 10px !important;
+    outline: none !important;
+    transition: border-color var(--ui-transition) !important;
+}
+
+#findInLists:focus {
+    border-color: var(--ui-border-strong) !important;
+    background: var(--ui-bg-surface) !important;
+}
+
+#listsOfBlockedHostsPrompt {
+    font-size: 12px !important;
+    color: var(--ui-fg-muted) !important;
+}
+
+
+/* ============================================================
+   SECTIONS (pane content areas)
+   ============================================================ */
+
+body > section {
+    display: none !important;
+    padding-block: 28px !important;
+}
+
+body[data-pane="settings"]:not(.busy) > section[data-pane="settings"],
+body[data-pane="rulesets"]:not(.busy)  > section[data-pane="rulesets"],
+body[data-pane="filters"]:not(.busy)   > section[data-pane="filters"],
+body[data-pane="develop"]:not(.busy)   > section[data-pane="develop"],
+body[data-pane="about"]:not(.busy)     > section[data-pane="about"],
+body.busy[data-pane]                   > section[data-pane="busy"] {
+    display: block !important;
+}
+
+
+/* ---- Section cards (each <div> inside a section) ---- */
+section[data-pane="settings"] > div,
+section[data-pane="about"] > div {
+    background: var(--ui-bg-surface) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+    margin-bottom: 16px !important;
+    padding: 20px 24px !important;
+}
+
+section > div:last-child {
+    margin-bottom: 0 !important;
+}
+
+section h3 {
+    color: var(--ui-fg-primary) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+    margin: 0 0 14px !important;
+    text-transform: uppercase !important;
+}
+
+
+/* ============================================================
+   SETTINGS TAB
+   ============================================================ */
+
+/* Filtering mode cards */
+#defaultFilteringMode {
+    display: grid !important;
+    gap: 10px !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+}
+
+.filteringModeCard {
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    cursor: pointer !important;
+    transition: border-color var(--ui-transition), background var(--ui-transition), box-shadow var(--ui-transition) !important;
+}
+
+.filteringModeCard:hover {
+    background: var(--ui-bg-muted) !important;
+    border-color: var(--ui-border-strong) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+}
+
+.filteringModeCard:has(.radio > [type="radio"]:checked) {
+    background: var(--ui-bg-surface) !important;
+    border-color: var(--ui-accent) !important;
+    box-shadow: var(--ui-shadow) !important;
+}
+
+.filteringModeCard > div:nth-of-type(3) {
+    border-top: 1px solid var(--ui-border) !important;
+    color: var(--ui-fg-secondary) !important;
+    font-size: 11.5px !important;
+    padding: 8px 10px !important;
+}
+
+/* Settings checkboxes section */
+section[data-pane="settings"] p:has(> label) {
+    margin: 8px 0 !important;
+}
+
+label + legend {
+    color: var(--ui-fg-muted) !important;
+    font-size: 11.5px !important;
+    margin-inline-start: 6px !important;
+}
+
+/* Checkbox custom style */
+.checkbox > input[type="checkbox"] + svg {
+    border-color: var(--ui-border-strong) !important;
+    border-radius: 3px !important;
+}
+
+.checkbox > input[type="checkbox"]:checked + svg {
+    background-color: var(--ui-accent) !important;
+    border-color: var(--ui-accent) !important;
+}
+
+/* Buttons */
+button.iconified {
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    color: var(--ui-fg-primary) !important;
+    fill: var(--ui-fg-primary) !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    padding: 6px 14px !important;
+    transition: background var(--ui-transition), border-color var(--ui-transition), box-shadow var(--ui-transition) !important;
+    min-height: 32px !important;
+}
+
+button.iconified:not([disabled]):hover {
+    background: var(--ui-bg-muted) !important;
+    border-color: var(--ui-border-strong) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+}
+
+button.iconified.preferred:not([disabled]) {
+    background: var(--ui-accent) !important;
+    border-color: var(--ui-accent) !important;
+    color: var(--ui-bg-surface) !important;
+    fill: var(--ui-bg-surface) !important;
+}
+
+button.iconified.preferred:not([disabled]):hover {
+    background: var(--ui-accent-hover) !important;
+}
+
+button > .hover {
+    display: none !important;
+}
+
+
+/* ============================================================
+   FILTER LISTS TAB (rulesets)
+   ============================================================ */
+
+section[data-pane="rulesets"] {
+    padding-inline: 0 !important;
+    max-width: none !important;
+}
+
+section[data-pane="rulesets"] > #lists {
+    box-sizing: border-box !important;
+    max-width: var(--ui-content-max) !important;
+    margin-inline: auto !important;
+    padding-inline: var(--ui-content-pad) !important;
+    padding-block: 20px !important;
+}
+
+
+/* ---- Budget bar ---- */
+#ubol-budget-bar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+    padding: 12px 16px !important;
+    background: var(--ui-bg-surface) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+}
+
+.ubol-budget-track {
+    flex: 1 !important;
+    height: 4px !important;
+    background: var(--ui-bg-muted) !important;
+    border-radius: 2px !important;
+    overflow: hidden !important;
+}
+
+.ubol-budget-fill {
+    height: 100% !important;
+    width: 0% !important;
+    background: var(--ui-fg-muted) !important;
+    border-radius: 2px !important;
+    transition: width 0.3s ease, background 0.3s ease !important;
+}
+
+.ubol-budget-fill.warn   { background: var(--ui-warn) !important; }
+.ubol-budget-fill.danger { background: var(--ui-danger) !important; }
+
+.ubol-budget-label {
+    color: var(--ui-fg-secondary) !important;
+    font-size: 12px !important;
+    font-variant-numeric: tabular-nums !important;
+    white-space: nowrap !important;
+    min-width: 14ch !important;
+    text-align: right !important;
+}
+
+#ubol-budget-warn {
+    color: var(--ui-danger) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+}
+
+
+/* ---- Grid layout ---- */
+.ubol-builtin {
+    background: var(--ui-bg-surface) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+    margin-bottom: 12px !important;
+    padding: 14px 18px !important;
+}
+
+.ubol-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+}
+
+@media (max-width: 680px) {
+    .ubol-grid { grid-template-columns: 1fr !important; }
+}
+
+.ubol-col {
+    background: var(--ui-bg-surface) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+    padding: 14px 18px !important;
+}
+
+.ubol-col-title {
+    color: var(--ui-fg-muted) !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid var(--ui-border) !important;
+    margin-bottom: 10px !important;
+}
+
+
+/* ---- Sections inside columns ---- */
+.ubol-section {
+    margin-bottom: 8px !important;
+}
+
+.ubol-section-title {
+    color: var(--ui-fg-muted) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    margin: 10px 0 4px !important;
+    text-transform: uppercase !important;
+}
+
+.ubol-entries {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1px !important;
+}
+
+
+/* ---- Individual entries ---- */
+.ubol-entry {
+    border-radius: var(--ui-radius-sm) !important;
+    padding: 2px 4px !important;
+    transition: background var(--ui-transition) !important;
+}
+
+.ubol-entry:hover {
+    background: var(--ui-bg-subtle) !important;
+}
+
+.ubol-bar {
+    align-items: center !important;
+    display: flex !important;
+    gap: 6px !important;
+    min-height: 28px !important;
+}
+
+.ubol-list-name {
+    color: var(--ui-fg-primary) !important;
+    cursor: pointer !important;
+    flex: 1 !important;
+    font-size: 13px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.ubol-list-name.is-default {
+    color: var(--ui-fg-secondary) !important;
+    font-style: italic !important;
+}
+
+.ubol-iconbar {
+    align-items: center !important;
+    display: flex !important;
+    flex-shrink: 0 !important;
+    gap: 2px !important;
+}
+
+.ubol-iconbar .fa-icon {
+    color: var(--ui-fg-faint) !important;
+    fill: var(--ui-fg-faint) !important;
+    font-size: 13px !important;
+    transition: color var(--ui-transition) !important;
+}
+
+.ubol-iconbar .fa-icon:hover {
+    color: var(--ui-fg-secondary) !important;
+    fill: var(--ui-fg-secondary) !important;
+    transform: none !important;
+}
+
+
+/* ---- Variant (Full/Optimized) buttons ---- */
+.ubol-variant-row {
+    display: flex !important;
+    gap: 4px !important;
+    padding: 2px 28px 4px !important;
+}
+
+.ubol-variant-btn {
+    background: transparent !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: 20px !important;
+    color: var(--ui-fg-muted) !important;
+    cursor: pointer !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em !important;
+    min-height: unset !important;
+    padding: 2px 10px !important;
+    transition: background var(--ui-transition), border-color var(--ui-transition), color var(--ui-transition) !important;
+}
+
+.ubol-variant-btn > .hover { display: none !important; }
+
+.ubol-variant-btn:hover {
+    background: var(--ui-bg-subtle) !important;
+    border-color: var(--ui-border-strong) !important;
+    color: var(--ui-fg-primary) !important;
+}
+
+.ubol-variant-btn.active {
+    background: var(--ui-accent) !important;
+    border-color: var(--ui-accent) !important;
+    color: var(--ui-bg-surface) !important;
+    font-weight: 600 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ubol-variant-btn.active {
+        color: var(--ui-bg-page) !important;
+    }
+}
+
+.ubol-entry.disabled .ubol-variant-row {
+    opacity: 0.3 !important;
+    pointer-events: none !important;
+}
+
+.ubol-entry.disabled .ubol-list-name {
+    color: var(--ui-fg-muted) !important;
+}
+
+
+/* ---- Misc and regions (full-width cards below grid) ---- */
+.ubol-section:not(.ubol-builtin):not(.ubol-col > .ubol-section) {
+    background: var(--ui-bg-surface) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+    margin-bottom: 12px !important;
+    padding: 14px 18px !important;
+}
+
+/* Search mode */
+#lists.searchMode .ubol-entry:not(.searchMatch) {
+    display: none !important;
+}
+
+
+/* ============================================================
+   CUSTOM FILTERS TAB
+   ============================================================ */
+
+section[data-pane="filters"] {
+    padding-inline: 0 !important;
+    max-width: none !important;
+}
+
+section[data-pane="filters"] .hostnames {
+    background: var(--ui-bg-surface) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--ui-border) !important;
+    box-sizing: border-box !important;
+    max-width: var(--ui-content-max) !important;
+    margin-inline: auto !important;
+    padding-inline: var(--ui-content-pad) !important;
+}
+
+section[data-pane="filters"] aside {
+    background: var(--ui-bg-surface) !important;
+    border-top: 1px solid var(--ui-border) !important;
+    box-sizing: border-box !important;
+    max-width: var(--ui-content-max) !important;
+    margin-inline: auto !important;
+    padding: 16px var(--ui-content-pad) !important;
+}
+
+section[data-pane="filters"] aside textarea {
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    color: var(--ui-fg-primary) !important;
+    font-size: 12.5px !important;
+}
+
+section[data-pane="filters"] aside textarea:focus {
+    background: var(--ui-bg-surface) !important;
+    border-color: var(--ui-border-strong) !important;
+    outline: none !important;
+}
+
+section[data-pane="filters"] li.hostname > div {
+    background: var(--ui-bg-subtle) !important;
+}
+
+section[data-pane="filters"] li.selector:not(:first-of-type) {
+    border-top: 1px solid var(--ui-border) !important;
+}
+
+section[data-pane="filters"] li > div:hover {
+    background: var(--ui-bg-muted) !important;
+}
+
+
+/* ============================================================
+   DEVELOP TAB
+   ============================================================ */
+
+section[data-pane="develop"] > div {
+    background: var(--ui-bg-surface) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+    padding: 20px 24px !important;
+}
+
+section[data-pane="develop"] select {
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    color: var(--ui-fg-primary) !important;
+    padding: 4px 8px !important;
+}
+
+
+/* ============================================================
+   ABOUT TAB
+   ============================================================ */
+
+section[data-pane="about"] .li {
+    color: var(--ui-fg-secondary) !important;
+    font-size: 13px !important;
+    margin: 6px 0 !important;
+}
+
+section[data-pane="about"] a {
+    color: var(--ui-fg-primary) !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+}
+
+section[data-pane="about"] a:hover {
+    color: var(--ui-fg-secondary) !important;
+}
+
+section[data-pane="about"] pre {
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    font-size: 11px !important;
+    padding: 12px !important;
+    overflow-x: auto !important;
+}
+
+section[data-pane="about"] hr {
+    border-top-color: var(--ui-border) !important;
+}
+
+
+/* ============================================================
+   MISC / GLOBAL POLISH
+   ============================================================ */
+
+/* Spinner */
+#commit-spinner {
+    color: var(--ui-fg-muted) !important;
+    fill: var(--ui-fg-muted) !important;
+}
+
+#dnrError {
+    color: var(--ui-danger) !important;
+    font-size: 12px !important;
+}
+
+/* CodeMirror editor containers */
+.cm-container {
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    overflow: hidden !important;
+}
+
+/* Scrollbar refinement */
+* {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--ui-border-strong) transparent !important;
+}
+
+/* Remove report button */
 #gotoReport {
     display: none !important;
 }
 
-/* Budget bar */
-#ubol-budget-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px 4px;
-    font-size: 0.8em;
-    opacity: 0.85;
+/* Busy spinner pane */
+section[data-pane="busy"] > div {
+    align-items: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    min-height: 200px !important;
 }
 
-.ubol-budget-track {
-    flex: 1;
-    height: 5px;
-    background: color-mix(in srgb, currentColor 15%, transparent);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.ubol-budget-fill {
-    height: 100%;
-    width: 0%;
-    background: hsl(140 60% 45%);
-    border-radius: 3px;
-    transition: width 0.3s ease, background 0.3s ease;
-}
-
-.ubol-budget-fill.warn   { background: hsl(38 85% 50%); }
-.ubol-budget-fill.danger { background: hsl(4 80% 52%); }
-
-#ubol-budget-label {
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-    min-width: 12ch;
-    text-align: right;
-}
-
-#ubol-budget-warn {
-    color: hsl(4 80% 52%);
-    font-weight: 600;
-}
-
-/* Grid layout */
-#ubol-lists {
-    padding: 8px 12px;
-}
-
-.ubol-builtin {
-    margin-bottom: 12px;
-}
-
-.ubol-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 16px;
-    margin-bottom: 12px;
-}
-
-@media (max-width: 700px) {
-    .ubol-grid { grid-template-columns: 1fr; }
-}
-
-.ubol-col-title {
-    font-weight: 700;
-    font-size: 0.75em;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.55;
-    padding: 0 4px 6px;
-    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
-    margin-bottom: 6px;
-}
-
-/* Sections */
-.ubol-section {
-    margin-bottom: 10px;
-}
-
-.ubol-section-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 0;
-}
-
-.ubol-section-title {
-    font-size: 0.8em;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    opacity: 0.5;
-    margin: 4px 0 2px;
-}
-
-.ubol-entries {
-    padding-left: 2px;
-}
-
-/* Individual entries */
-.ubol-entry {
-    border-radius: 6px;
-    padding: 3px 4px;
-    transition: background 0.1s;
-}
-
-.ubol-entry:hover {
-    background: color-mix(in srgb, currentColor 5%, transparent);
-}
-
-.ubol-bar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.ubol-list-name {
-    flex: 1;
-    font-size: 0.9em;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.ubol-list-name.is-default {
-    font-style: italic;
-    opacity: 0.75;
-}
-
-.ubol-iconbar {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-}
-
-/* Variant buttons */
-.ubol-variant-row {
-    display: flex;
-    gap: 4px;
-    padding: 2px 24px 3px;
-}
-
-.ubol-variant-btn {
-    font-size: 0.75em;
-    padding: 1px 8px;
-    border-radius: 10px;
-    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s;
-}
-
-.ubol-variant-btn:hover {
-    opacity: 0.9;
-    background: color-mix(in srgb, currentColor 8%, transparent);
-}
-
-.ubol-variant-btn.active {
-    opacity: 1;
-    background: color-mix(in srgb, currentColor 15%, transparent);
-    border-color: color-mix(in srgb, currentColor 50%, transparent);
-    font-weight: 600;
-}
-
-.ubol-entry.disabled .ubol-variant-row {
-    opacity: 0.35;
-    pointer-events: none;
-}
-
-/* Search */
-#ubol-lists.searchMode .ubol-entry:not(.searchMatch) {
-    display: none;
+section[data-pane="busy"] .fa-icon {
+    color: var(--ui-fg-faint) !important;
+    fill: var(--ui-fg-faint) !important;
 }
