@@ -195,6 +195,7 @@ function buildSimpleEntry(ruleset, enabledIds) {
     const entry = document.createElement('div');
     entry.className = 'ubol-entry';
     entry.dataset.rulesetid = ruleset.id;
+    if (ruleset.lang) entry.dataset.nodeid = ruleset.lang;
 
     const bar = document.createElement('div');
     bar.className = 'ubol-bar';
@@ -241,9 +242,6 @@ function buildSection(title, rulesets, enabledIds) {
             if (ruleset.id !== pair.full) continue;
             rendered.add(pair.full);
             rendered.add(pair.opt);
-            inner.appendChild(buildVariantEntry(pair, enabledIds));
-        } else if (pair && (!pair.full || !pair.opt)) {
-            rendered.add(ruleset.id);
             inner.appendChild(buildVariantEntry(pair, enabledIds));
         } else {
             rendered.add(ruleset.id);
