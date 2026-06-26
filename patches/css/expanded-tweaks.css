@@ -71,7 +71,8 @@ body > * {
 }
 
 
-/* ---- Global content wrapper (sections only, NOT header) ---- */
+/* ---- Global content wrapper — header + sections same width ---- */
+body > header,
 body > section {
     box-sizing: border-box !important;
     max-width: var(--ui-content-max) !important;
@@ -91,7 +92,6 @@ header {
     padding-top: 0 !important;
     position: sticky !important;
     top: 0 !important;
-    width: 100% !important;
     z-index: 200 !important;
 }
 
@@ -100,9 +100,6 @@ nav#dashboard-nav {
     border-bottom: none !important;
     display: flex !important;
     gap: 0 !important;
-    max-width: var(--ui-content-max) !important;
-    margin-inline: auto !important;
-    padding-inline: var(--ui-content-pad) !important;
     overflow-x: auto !important;
 }
 
@@ -157,14 +154,10 @@ body[data-pane="about"]     #dashboard-nav .tabButton[data-pane="about"] {
 /* Rulesets subheader (search + spinner) */
 header [data-pane-related="rulesets"] {
     padding-block: 6px !important;
-    padding-inline: var(--ui-content-pad) !important;
     display: flex !important;
     align-items: center !important;
     gap: 12px !important;
     border-top: 1px solid var(--ui-border) !important;
-    max-width: var(--ui-content-max) !important;
-    margin-inline: auto !important;
-    box-sizing: border-box !important;
 }
 
 #findInLists {
@@ -573,6 +566,44 @@ section[data-pane="rulesets"] > #lists {
 /* Search mode */
 #lists.searchMode .ubol-entry:not(.searchMatch) {
     display: none !important;
+}
+
+
+/* ---- Over-limit: entry that would push rules past 30k ---- */
+.ubol-entry.ubol-over-limit {
+    background: color-mix(in srgb, #dc2626 6%, transparent) !important;
+}
+
+.ubol-entry.ubol-over-limit .ubol-list-name {
+    color: color-mix(in srgb, #dc2626 55%, var(--ui-fg-muted) 45%) !important;
+}
+
+.ubol-entry.ubol-over-limit .checkbox > input[type="checkbox"] + svg {
+    border-color: color-mix(in srgb, #dc2626 40%, var(--ui-border-strong) 60%) !important;
+    opacity: 0.5 !important;
+}
+
+/* Over-limit variant button */
+.ubol-variant-btn.ubol-btn-over-limit {
+    background: color-mix(in srgb, #dc2626 8%, transparent) !important;
+    border-color: color-mix(in srgb, #dc2626 35%, var(--ui-border) 65%) !important;
+    color: color-mix(in srgb, #dc2626 60%, var(--ui-fg-muted) 40%) !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ubol-entry.ubol-over-limit {
+        background: color-mix(in srgb, #ef4444 8%, transparent) !important;
+    }
+    .ubol-entry.ubol-over-limit .ubol-list-name {
+        color: color-mix(in srgb, #ef4444 60%, var(--ui-fg-muted) 40%) !important;
+    }
+    .ubol-variant-btn.ubol-btn-over-limit {
+        background: color-mix(in srgb, #ef4444 10%, transparent) !important;
+        border-color: color-mix(in srgb, #ef4444 40%, var(--ui-border) 60%) !important;
+        color: color-mix(in srgb, #ef4444 65%, var(--ui-fg-muted) 35%) !important;
+    }
 }
 
 
