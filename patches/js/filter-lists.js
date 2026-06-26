@@ -111,6 +111,86 @@ function updateBudgetBar() {
     }
     if (label) label.textContent = `${renderNum(total)} / ${renderNum(DNR_RULE_LIMIT)} rules`;
     if (warn)  warn.hidden = pct < 90;
+
+    return total;
+}
+
+function updateBudgetLimit() {
+    // Get current total (reuse the bar calculation's side-effect-free version)
+    let currentTotal = 0;
+    for (const input of qsa$('#lists input[type="checkbox"][data-rulesetid]:checked')) {
+        const s = rulesetStats(input.dataset.rulesetid);
+        if (s) currentTotal += s.ruleCount;
+    }
+    for (const btn of qsa$('#lists .ubol-variant-btn.active')) {
+        const entry = btn.closest('.ubol-entry');
+        const cbEl  = entry?.querySelector('input[data-variant-group]');
+        if (!cbEl?.checked) continue;
+        const s = rulesetStats(btn.dataset.rulesetid);
+        if (s) currentTotal += s.ruleCount;
+    }
+
+    // ---- Simple entries (single checkbox, no variant buttons) ----
+    for (const entry of qsa$('#lists .ubol-entry[data-rulesetid]')) {
+        const input = entry.querySelector('input[data-rulesetid]');
+        if (!input) continue;
+        if (input.checked) {
+            // Already on — always removable, clear any over-limit state
+            entry.classList.remove('ubol-over-limit');
+            input.disabled = false;
+        } else {
+            const s = rulesetStats(input.dataset.rulesetid);
+            const cost = s?.ruleCount ?? 0;
+            const overLimit = cost > 0 && (currentTotal + cost) > DNR_RULE_LIMIT;
+            entry.classList.toggle('ubol-over-limit', overLimit);
+            input.disabled = overLimit;
+        }
+    }
+
+    // ---- Variant entries (Full / Optimized checkbox + buttons) ----
+    for (const entry of qsa$('#lists .ubol-entry[data-variant-group]')) {
+        const cbEl = entry.querySelector('input[data-variant-group]');
+        if (!cbEl) continue;
+
+        const row = entry.querySelector('.ubol-variant-row');
+        const btns = row ? Array.from(row.querySelectorAll('.ubol-variant-btn')) : [];
+
+        if (!cbEl.checked) {
+            // Whole list is OFF — disable if even the cheapest variant would exceed cap
+            let minCost = Infinity;
+            for (const btn of btns) {
+                const s = rulesetStats(btn.dataset.rulesetid);
+                if (s && s.ruleCount < minCost) minCost = s.ruleCount;
+            }
+            const overLimit = minCost !== Infinity && (currentTotal + minCost) > DNR_RULE_LIMIT;
+            entry.classList.toggle('ubol-over-limit', overLimit);
+            cbEl.disabled = overLimit;
+            // Clear per-button state (list is off, buttons are irrelevant visually)
+            for (const btn of btns) btn.classList.remove('ubol-btn-over-limit');
+        } else {
+            // List is ON — clear entry-level limit, check per-button
+            entry.classList.remove('ubol-over-limit');
+            cbEl.disabled = false;
+
+            // Cost of the currently active variant (so we subtract it before comparing)
+            const activeBtn = row?.querySelector('.ubol-variant-btn.active');
+            const activeCost = activeBtn ? (rulesetStats(activeBtn.dataset.rulesetid)?.ruleCount ?? 0) : 0;
+            const baseTotal  = currentTotal - activeCost;
+
+            for (const btn of btns) {
+                if (btn === activeBtn) {
+                    btn.classList.remove('ubol-btn-over-limit');
+                    btn.disabled = false;
+                    continue;
+                }
+                const s = rulesetStats(btn.dataset.rulesetid);
+                const cost = s?.ruleCount ?? 0;
+                const overLimit = cost > 0 && (baseTotal + cost) > DNR_RULE_LIMIT;
+                btn.classList.toggle('ubol-btn-over-limit', overLimit);
+                btn.disabled = overLimit;
+            }
+        }
+    }
 }
 
 function buildBudgetBar() {
@@ -373,6 +453,7 @@ export function renderFilterLists(rulesetData) {
     listsEl.appendChild(frag);
     faIconsInit(listsEl);
     updateBudgetBar();
+    updateBudgetLimit();
 }
 
 const applyEnabledRulesets = (() => {
@@ -417,6 +498,7 @@ const applyEnabledRulesets = (() => {
 
 dom.on('#lists', 'change', 'input[data-rulesetid]', () => {
     updateBudgetBar();
+    updateBudgetLimit();
     applyEnabledRulesets();
 });
 
@@ -440,6 +522,7 @@ dom.on('#lists', 'change', 'input[data-variant-group]', ev => {
     }
 
     updateBudgetBar();
+    updateBudgetLimit();
     applyEnabledRulesets();
 });
 
@@ -454,6 +537,7 @@ dom.on('#lists', 'click', '.ubol-variant-btn', ev => {
         b.classList.toggle('active', b === btn);
     }
     updateBudgetBar();
+    updateBudgetLimit();
     applyEnabledRulesets();
 });
 
