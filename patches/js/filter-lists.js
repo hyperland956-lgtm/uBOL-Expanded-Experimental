@@ -11,33 +11,49 @@ let cachedRulesetData = {};
 const DNR_RULE_LIMIT = 30000;
 
 const COLUMN_CONFIG = {
-    easylist: new Set(['easylist', 'easyprivacy', 'fanboy-annoyances-extra', 'fanboy-annoyances-opt']),
-    adguard:  new Set([
-        'adguard-base-extra',    'adguard-base-opt',
-        'adguard-tracking-extra','adguard-tracking-opt',
+    easylist: new Set([
+        'easylist',          'easylist-opt',
+        'easyprivacy',       'easyprivacy-opt',
+        'annoyances-cookies',
+        'annoyances-overlays',
+        'annoyances-social',
+        'annoyances-widgets',
+        'annoyances-others',
+        'annoyances-notifications',
+        'annoyances-ai',
+    ]),
+    adguard: new Set([
+        'adguard-base-without-el',    'adguard-base-without-el-opt',
+        'adguard-tracking-extra',     'adguard-tracking-opt',
+        'adguard-spyware-url',
         'adguard-dns-opt',
-        'adguard-annoyances-extra', 'adguard-annoyances-opt',
-        'adguard-cookie-extra',  'adguard-cookie-opt',
-        'adguard-popups-extra',  'adguard-popups-opt',
-        'adguard-mobile-extra',  'adguard-mobile-opt',
-        'adguard-other-extra',   'adguard-other-opt',
-        'adguard-widgets-extra', 'adguard-widgets-opt',
+        'adguard-mobile',
+        'adguard-mobile-extra',       'adguard-mobile-opt',
+        'adguard-cookie-extra',       'adguard-cookie-opt',
+        'adguard-popups-extra',       'adguard-popups-opt',
+        'adguard-other-extra',        'adguard-other-opt',
+        'adguard-widgets-extra',      'adguard-widgets-opt',
     ]),
 };
 
+const MISC_ORDER = [
+    'block-lan',
+    'urlhaus-full',
+    'oisd-nsfw-extra',
+    'adguard-search-ads',
+];
+
 const VARIANT_PAIRS = [
-    { full: 'easylist',               opt: null },
-    { full: 'easyprivacy',            opt: null },
-    { full: 'adguard-base-extra',     opt: 'adguard-base-opt' },
-    { full: 'adguard-tracking-extra', opt: 'adguard-tracking-opt' },
-    { full: null,                     opt: 'adguard-dns-opt' },
-    { full: 'adguard-annoyances-extra',opt:'adguard-annoyances-opt' },
-    { full: 'adguard-cookie-extra',   opt: 'adguard-cookie-opt' },
-    { full: 'adguard-popups-extra',   opt: 'adguard-popups-opt' },
-    { full: 'adguard-mobile-extra',   opt: 'adguard-mobile-opt' },
-    { full: 'adguard-other-extra',    opt: 'adguard-other-opt' },
-    { full: 'adguard-widgets-extra',  opt: 'adguard-widgets-opt' },
-    { full: 'fanboy-annoyances-extra',opt: 'fanboy-annoyances-opt' },
+    { full: 'easylist',                   opt: 'easylist-opt' },
+    { full: 'easyprivacy',                opt: 'easyprivacy-opt' },
+    { full: 'adguard-base-without-el',    opt: 'adguard-base-without-el-opt' },
+    { full: 'adguard-tracking-extra',     opt: 'adguard-tracking-opt' },
+    { full: null,                         opt: 'adguard-dns-opt' },
+    { full: 'adguard-cookie-extra',       opt: 'adguard-cookie-opt' },
+    { full: 'adguard-popups-extra',       opt: 'adguard-popups-opt' },
+    { full: 'adguard-mobile-extra',       opt: 'adguard-mobile-opt' },
+    { full: 'adguard-other-extra',        opt: 'adguard-other-opt' },
+    { full: 'adguard-widgets-extra',      opt: 'adguard-widgets-opt' },
 ];
 
 const variantPairOf = new Map();
@@ -158,7 +174,7 @@ function buildVariantEntry(pair, enabledIds) {
     input.dataset.variantGroup = primaryId;
 
     const label = document.createElement('label');
-    label.className = 'ubol-list-name' + (d?.enabled ? ' is-default' : '');
+    label.className = 'ubol-list-name';
     label.textContent = d?.name ?? primaryId;
 
     const iconBar = document.createElement('span');
@@ -205,7 +221,7 @@ function buildSimpleEntry(ruleset, enabledIds) {
     if (s) wrap.title = statsTitle(ruleset.id);
 
     const label = document.createElement('label');
-    label.className = 'ubol-list-name' + (ruleset.enabled ? ' is-default' : '');
+    label.className = 'ubol-list-name';
     label.textContent = ruleset.name;
 
     const iconBar = document.createElement('span');
@@ -334,13 +350,21 @@ export function renderFilterLists(rulesetData) {
     grid.appendChild(adCol);
     frag.appendChild(grid);
 
-    const miscRulesets = [
+    const allMiscRaw = [
         ...filterCommonAll(byGroup.ads),
         ...filterCommonAll(byGroup.privacy),
         ...filterCommonAll(byGroup.malware),
         ...filterCommonAll(byGroup.misc),
     ];
-    const miscSection = buildSection(groupLabel('misc'), miscRulesets, enabledIds);
+    const miscOrdered = [];
+    for (const id of MISC_ORDER) {
+        const r = allMiscRaw.find(x => x.id === id);
+        if (r) miscOrdered.push(r);
+    }
+    for (const r of allMiscRaw) {
+        if (!MISC_ORDER.includes(r.id)) miscOrdered.push(r);
+    }
+    const miscSection = buildSection(groupLabel('misc'), miscOrdered, enabledIds);
     if (miscSection) frag.appendChild(miscSection);
 
     const regionsSection = buildSection(groupLabel('regions'), byGroup.regions, enabledIds);
