@@ -4,20 +4,21 @@
     "easyprivacy":         { "group": "privacy" },
     "pgl":                 { "enabled": false, "group": null },
     "urlhaus-full":        { "enabled": false },
-    "ublock-experimental": { "group": "default" },
-    "ubol-tests":          { "group": "default" }
+    "adguard-mobile":      { "group": "ads" },
+    "adguard-spyware-url": { "group": "privacy" },
+    "ublock-badware":      { "group": "default" },
+    "ublock-experimental": { "group": "misc" },
+    "ubol-tests":          { "group": "misc" }
   },
   "exclusivePairs": [
-    ["easylist", "adguard-base-extra"],
-    ["easyprivacy", "adguard-tracking-extra"],
-    ["adguard-base-extra", "adguard-base-opt"],
+    ["easylist", "easylist-opt"],
+    ["easyprivacy", "easyprivacy-opt"],
+    ["adguard-base-without-el", "adguard-base-without-el-opt"],
     ["adguard-tracking-extra", "adguard-tracking-opt"],
-    ["adguard-annoyances-extra", "adguard-annoyances-opt"],
     ["adguard-cookie-extra", "adguard-cookie-opt"],
     ["adguard-popups-extra", "adguard-popups-opt"],
     ["adguard-mobile-extra", "adguard-mobile-opt"],
     ["adguard-other-extra", "adguard-other-opt"],
-    ["adguard-widgets-extra", "adguard-widgets-opt"],
-    ["fanboy-annoyances-extra", "fanboy-annoyances-opt"]
+    ["adguard-widgets-extra", "adguard-widgets-opt"]
   ]
 }
