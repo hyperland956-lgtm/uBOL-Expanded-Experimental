@@ -160,7 +160,27 @@
     "cacheFile": "cache/adguard-widgets-opt.txt"
   },
   {
-    "id": "adguard-search-ads",
+    "id": "cudios-tracking-full",
+    "name": "Comprehensive Tracking Protection",
+    "group": "misc",
+    "enabled": false,
+    "tags": "tracking privacy comprehensive cudios",
+    "homeURL": "https://github.com/cudios-dev/adfilters",
+    "info": "Aggregates tracking protection from AdGuard, EasyPrivacy, DuckDuckGo Tracker Radar, Privacy Badger, Ghostery, and Disconnect.me into a single list. Enable exclusively for tracking protection — do not stack with other tracker-focused lists.",
+    "url": "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/advanced_tracking_protection.txt",
+    "cacheFile": "cache/cudios-tracking-full.txt"
+  },
+  {
+    "id": "cudios-tracking-opt",
+    "name": "Comprehensive Tracking Protection (Optimized)",
+    "enabled": false,
+    "tags": "tracking privacy comprehensive cudios optimized",
+    "homeURL": "https://github.com/cudios-dev/adfilters",
+    "info": "Aggregates tracking protection from AdGuard, EasyPrivacy, DuckDuckGo Tracker Radar, Privacy Badger, Ghostery, and Disconnect.me into a single list. Enable exclusively for tracking protection — do not stack with other tracker-focused lists.",
+    "url": "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/advanced_tracking_protection_optimized.txt",
+    "cacheFile": "cache/cudios-tracking-opt.txt"
+  },
+  {
     "name": "Filter unblocking search ads and self-promotion",
     "enabled": false,
     "tags": "search ads allowlist adguard",
