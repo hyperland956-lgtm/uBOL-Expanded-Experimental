@@ -382,9 +382,20 @@ function groupLabel(id) {
     return i18n$(key) || id;
 }
 
-export function renderFilterLists(rulesetData) {
-    cachedRulesetData = rulesetData;
-    const { enabledRulesets, rulesetDetails } = cachedRulesetData;
+export async function renderFilterLists() {
+    const [
+        enabledRulesets,
+        rulesetDetails,
+    ] = await Promise.all([
+        sendMessage({ what: 'getEnabledRulesets' }),
+        sendMessage({ what: 'getRulesetDetails' }),
+    ]);
+    
+    self.cachedRulesetData = self.cachedRulesetData || {};
+    self.cachedRulesetData.enabledRulesets = enabledRulesets;
+    self.cachedRulesetData.rulesetDetails = rulesetDetails;
+
+    cachedRulesetData = self.cachedRulesetData;
 
     rulesetDetails.forEach(r => rulesetMap.set(r.id, r));
     const enabledIds = new Set(enabledRulesets);
@@ -589,3 +600,5 @@ dom.on('#findInLists', 'input', () => {
         dom.cl.toggle(entry, 'searchMatch', re.test(hay));
     }
 });
+
+dom.onFirstShown(renderFilterLists, qs$('section[data-pane="rulesets"]'));
