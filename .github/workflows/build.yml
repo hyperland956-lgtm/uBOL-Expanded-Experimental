@@ -31,7 +31,8 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Clone uBlock source
-        run: rm -rf ./ublock-src
+        run: |
+          rm -rf ./ublock-src
           git clone --depth 1 https://github.com/gorhill/uBlock.git ublock-src
 
       - name: Clone uBOL-home (platform base dirs)
