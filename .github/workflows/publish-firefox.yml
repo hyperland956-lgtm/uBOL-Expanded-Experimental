@@ -78,4 +78,3 @@ jobs:
         run: |
           echo "Submitted to AMO review queue for tag ${{ steps.release.outputs.tag }}"
           echo "Users will receive the update via addons.mozilla.org once reviewed."
- 
