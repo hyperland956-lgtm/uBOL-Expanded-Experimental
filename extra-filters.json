@@ -1,5 +1,32 @@
 [
   {
+    "id": "annoyances-social-opt",
+    "name": "EasyList/uBO – Social Widgets (Optimized)",
+    "enabled": false,
+    "tags": "annoyances social easylist optimized",
+    "homeURL": "https://easylist.to/",
+    "url": "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_social_optimized.txt",
+    "cacheFile": "cache/easylist-social-opt.txt"
+  },
+  {
+    "id": "annoyances-widgets-opt",
+    "name": "EasyList/uBO – Chat Widgets (Optimized)",
+    "enabled": false,
+    "tags": "annoyances chat widgets easylist optimized",
+    "homeURL": "https://easylist.to/",
+    "url": "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_chat_optimized.txt",
+    "cacheFile": "cache/easylist-chat-opt.txt"
+  },
+  {
+    "id": "annoyances-notifications-opt",
+    "name": "EasyList/uBO – Notifications (Optimized)",
+    "enabled": false,
+    "tags": "annoyances notifications easylist optimized",
+    "homeURL": "https://easylist.to/",
+    "url": "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_notifications_optimized.txt",
+    "cacheFile": "cache/easylist-notifications-opt.txt"
+  },
+  {
     "id": "adguard-base-without-el",
     "name": "AdGuard Base filter (Without EasyList)",
     "group": "ads",
