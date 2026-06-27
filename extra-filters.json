@@ -181,6 +181,7 @@
     "cacheFile": "cache/cudios-tracking-opt.txt"
   },
   {
+    "id": "adguard-search-ads",
     "name": "Filter unblocking search ads and self-promotion",
     "enabled": false,
     "tags": "search ads allowlist adguard",
