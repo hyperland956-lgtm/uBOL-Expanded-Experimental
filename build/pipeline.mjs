@@ -205,6 +205,7 @@ function mergePlatform(platform, compiledTmpDir) {
         d.group   = cfg.group;
         d.enabled = cfg.enabled;
         if (cfg.parent !== undefined) d.parent = cfg.parent;
+        if (cfg.info) d.info = cfg.info;
       }
       mergedDetails.push(d);
     }
