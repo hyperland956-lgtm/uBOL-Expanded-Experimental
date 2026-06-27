@@ -31,10 +31,12 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Clone uBlock source
-        run: git clone --depth 1 https://github.com/gorhill/uBlock.git ublock-src
+        run: rm -rf ./ublock-src
+          git clone --depth 1 https://github.com/gorhill/uBlock.git ublock-src
 
       - name: Clone uBOL-home (platform base dirs)
         run: |
+          rm -rf ./ubol-home ./chromium ./firefox
           git clone --depth 1 https://github.com/uBlockOrigin/uBOL-home.git ubol-home
           cp -r ubol-home/chromium ./chromium
           cp -r ubol-home/firefox ./firefox
@@ -43,31 +45,55 @@ jobs:
         run: |
           mkdir -p cache
 
-          # Full (non-optimized) versions
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/2.txt   -o cache/adguard-base.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/3.txt   -o cache/adguard-tracking.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/14.txt  -o cache/adguard-annoyances.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/18.txt  -o cache/adguard-cookie.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/19.txt  -o cache/adguard-popups.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/20.txt  -o cache/adguard-mobile.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/21.txt  -o cache/adguard-other.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/22.txt  -o cache/adguard-widgets.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/122.txt -o cache/fanboy-annoyances.txt
+          # AdGuard Base without EasyList (full + optimized)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/2_without_easylist.txt -o cache/adguard-base-without-el.txt
+          curl -sSL "https://github.com/cudios-dev/adfilters/raw/refs/heads/main/output/adblock/2_without_easylist_optimized.txt" -o cache/adguard-base-without-el-opt.txt
 
-          # Optimized versions (smaller, fewer rules, better for MV3 rule budget)
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/2_optimized.txt   -o cache/adguard-base-opt.txt
+          # EasyList / EasyPrivacy optimized
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/101_optimized.txt -o cache/easylist-opt.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/118_optimized.txt  -o cache/easyprivacy-opt.txt
+
+          # EasyList Annoyances optimized (cudios-dev)
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_social_optimized.txt"        -o cache/easylist-social-opt.txt
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_chat_optimized.txt"          -o cache/easylist-chat-opt.txt
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_notifications_optimized.txt" -o cache/easylist-notifications-opt.txt
+
+          # AdGuard Tracking Protection (full + optimized)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/3.txt             -o cache/adguard-tracking.txt
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/3_optimized.txt   -o cache/adguard-tracking-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/14_optimized.txt  -o cache/adguard-annoyances-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/15_optimized.txt  -o cache/adguard-dns-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/18_optimized.txt  -o cache/adguard-cookie-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/19_optimized.txt  -o cache/adguard-popups-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/20_optimized.txt  -o cache/adguard-mobile-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/21_optimized.txt  -o cache/adguard-other-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/22_optimized.txt  -o cache/adguard-widgets-opt.txt
-          curl -sSL https://filters.adtidy.org/extension/ublock/filters/122_optimized.txt -o cache/fanboy-annoyances-opt.txt
 
-          # Other
-          curl -sSL https://nsfw-small.oisd.nl/ -o cache/oisd-nsfw.txt
+          # AdGuard DNS filter (optimized only)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/15_optimized.txt  -o cache/adguard-dns-opt.txt
+
+          # AdGuard Cookie Notices (full + optimized)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/18.txt            -o cache/adguard-cookie.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/18_optimized.txt  -o cache/adguard-cookie-opt.txt
+
+          # AdGuard Popups (full + optimized)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/19.txt            -o cache/adguard-popups.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/19_optimized.txt  -o cache/adguard-popups-opt.txt
+
+          # AdGuard Mobile App Banners (full + optimized via filter 11)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/20.txt            -o cache/adguard-mobile.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/11_optimized.txt  -o cache/adguard-mobile-opt.txt
+
+          # AdGuard Other Annoyances (full + optimized)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/21.txt            -o cache/adguard-other.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/21_optimized.txt  -o cache/adguard-other-opt.txt
+
+          # AdGuard Widgets (full + optimized)
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/22.txt            -o cache/adguard-widgets.txt
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/22_optimized.txt  -o cache/adguard-widgets-opt.txt
+
+          # Search ads unblocking allowlist
+          curl -sSL https://filters.adtidy.org/extension/ublock/filters/10.txt            -o cache/adguard-search-ads.txt
+
+          # NSFW Blocker
+          curl -sSL https://nsfw-small.oisd.nl/                                           -o cache/oisd-nsfw.txt
+
+          # Comprehensive Tracking Protection (full + optimized, cudios-dev)
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/advanced_tracking_protection.txt"           -o cache/cudios-tracking-full.txt
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/advanced_tracking_protection_optimized.txt" -o cache/cudios-tracking-opt.txt
 
       - name: Fetch upstream release notes
         run: |
