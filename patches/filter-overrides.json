@@ -11,6 +11,7 @@
     "ubol-tests":          { "group": "misc" }
   },
   "exclusivePairs": [
+    ["cudios-tracking-full", "cudios-tracking-opt"],
     ["easylist", "easylist-opt"],
     ["easyprivacy", "easyprivacy-opt"],
     ["adguard-base-without-el", "adguard-base-without-el-opt"],
