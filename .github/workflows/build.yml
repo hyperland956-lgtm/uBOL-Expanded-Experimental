@@ -51,6 +51,11 @@ jobs:
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/101_optimized.txt -o cache/easylist-opt.txt
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/118_optimized.txt  -o cache/easyprivacy-opt.txt
 
+          # EasyList Annoyances optimized (cudios-dev)
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_social_optimized.txt"        -o cache/easylist-social-opt.txt
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_chat_optimized.txt"          -o cache/easylist-chat-opt.txt
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/easylist_notifications_optimized.txt" -o cache/easylist-notifications-opt.txt
+
           # AdGuard Tracking Protection (full + optimized)
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/3.txt             -o cache/adguard-tracking.txt
           curl -sSL https://filters.adtidy.org/extension/ublock/filters/3_optimized.txt   -o cache/adguard-tracking-opt.txt
