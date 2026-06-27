@@ -37,6 +37,7 @@ const COLUMN_CONFIG = {
 };
 
 const MISC_ORDER = [
+    'cudios-tracking-full',      // first — Comprehensive Tracking Protection
     'block-lan',
     'urlhaus-full',
     'oisd-nsfw-extra',
@@ -44,6 +45,7 @@ const MISC_ORDER = [
 ];
 
 const VARIANT_PAIRS = [
+    { full: 'cudios-tracking-full',       opt: 'cudios-tracking-opt' },
     { full: 'easylist',                   opt: 'easylist-opt' },
     { full: 'easyprivacy',                opt: 'easyprivacy-opt' },
     { full: 'adguard-base-without-el',    opt: 'adguard-base-without-el-opt' },
@@ -234,6 +236,25 @@ function makeHomeLink(homeURL) {
     return a;
 }
 
+function makeInfoButton(infoText) {
+    if (!infoText) return null;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ubol-info-btn';
+    btn.setAttribute('aria-label', infoText);
+
+    const icon = document.createElement('span');
+    icon.textContent = 'ⓘ';
+    btn.appendChild(icon);
+
+    const tip = document.createElement('span');
+    tip.className = 'ubol-info-tip';
+    tip.textContent = infoText;
+    btn.appendChild(tip);
+
+    return btn;
+}
+
 function buildVariantEntry(pair, enabledIds) {
     const primaryId = pair.full ?? pair.opt;
     const d = rulesetMap.get(primaryId);
@@ -259,6 +280,8 @@ function buildVariantEntry(pair, enabledIds) {
 
     const iconBar = document.createElement('span');
     iconBar.className = 'ubol-iconbar';
+    const ib = makeInfoButton(d?.info ?? null);
+    if (ib) iconBar.appendChild(ib);
     const hl = makeHomeLink(d?.homeURL);
     if (hl) iconBar.appendChild(hl);
 
@@ -306,6 +329,8 @@ function buildSimpleEntry(ruleset, enabledIds) {
 
     const iconBar = document.createElement('span');
     iconBar.className = 'ubol-iconbar';
+    const ib = makeInfoButton(ruleset.info ?? null);
+    if (ib) iconBar.appendChild(ib);
     const hl = makeHomeLink(ruleset.homeURL);
     if (hl) iconBar.appendChild(hl);
 
