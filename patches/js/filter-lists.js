@@ -402,7 +402,15 @@ export function renderFilterLists(rulesetData) {
     const filterCol = (list, set) => list.filter(r => set.has(r.id) || (variantPairOf.get(r.id) && set.has(variantPairOf.get(r.id).full ?? variantPairOf.get(r.id).opt)));
     const filterCommon = list => list.filter(r => !elSet.has(r.id) && !adSet.has(r.id) && !isPairedId(r.id));
 
-    const allInCols = new Set([...elSet, ...adSet, ...VARIANT_PAIRS.flatMap(p => [p.full, p.opt].filter(Boolean))]);
+    // Only exclude paired IDs that are actually rendered in the column grid (easylist/adguard).
+    // Misc-group variant pairs (e.g. cudios-tracking) must NOT be excluded — they need
+    // to reach buildSection so buildVariantEntry can render them.
+    const colPairedIds = new Set(
+        VARIANT_PAIRS
+            .filter(p => elSet.has(p.full) || elSet.has(p.opt) || adSet.has(p.full) || adSet.has(p.opt))
+            .flatMap(p => [p.full, p.opt].filter(Boolean))
+    );
+    const allInCols = new Set([...elSet, ...adSet, ...colPairedIds]);
     const filterCommonAll = list => list.filter(r => !allInCols.has(r.id));
 
     const frag = document.createDocumentFragment();
