@@ -608,6 +608,153 @@ section[data-pane="rulesets"] > #lists {
 
 
 /* ============================================================
+   URL IMPORT ASIDE  (Custom filter list importer)
+   Force-show: upstream CSS hides it via :has([data-nodeid="imported"].hideUnused)
+   but our custom renderer never emits that node — so force it visible.
+   ============================================================ */
+
+section[data-pane="rulesets"] aside {
+    display: block !important;
+    margin-block-start: 20px !important;
+    padding: 14px 16px !important;
+    background: var(--ui-bg-subtle) !important;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius) !important;
+}
+
+section[data-pane="rulesets"] aside > p[data-i18n="userScriptsInfo"] {
+    display: none !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL > summary {
+    cursor: pointer !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: var(--ui-fg-secondary) !important;
+    user-select: none !important;
+    list-style: none !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL > p {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+    margin-block-start: 10px !important;
+    margin-block-end: 0 !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL input[type="url"] {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 6px 10px !important;
+    border: 1px solid var(--ui-border-strong) !important;
+    border-radius: var(--ui-radius-sm) !important;
+    background: var(--ui-bg-surface) !important;
+    color: var(--ui-fg-primary) !important;
+    font-size: 0.84rem !important;
+    font-family: inherit !important;
+    outline: none !important;
+    transition: border-color var(--ui-transition) !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL input[type="url"]:focus {
+    border-color: var(--ui-accent) !important;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.07) !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL input:is(:placeholder-shown, :invalid) ~ button {
+    display: none !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL button {
+    padding: 6px 14px !important;
+    background: var(--ui-accent) !important;
+    color: var(--ui-bg-surface) !important;
+    border: none !important;
+    border-radius: var(--ui-radius-sm) !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    font-family: inherit !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    transition: background var(--ui-transition) !important;
+}
+
+section[data-pane="rulesets"] .importRulesetURL button:hover {
+    background: var(--ui-accent-hover) !important;
+}
+
+
+/* ============================================================
+   INFO BUTTON  (ⓘ hoverable tooltip)
+   ============================================================ */
+
+.ubol-info-btn {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 2px !important;
+    cursor: default !important;
+    color: var(--ui-fg-faint) !important;
+    font-size: 0.78rem !important;
+    line-height: 1 !important;
+    transition: color var(--ui-transition) !important;
+}
+
+.ubol-info-btn:hover {
+    color: var(--ui-fg-secondary) !important;
+}
+
+.ubol-info-tip {
+    display: none !important;
+    position: absolute !important;
+    bottom: calc(100% + 7px) !important;
+    right: 0 !important;
+    width: 240px !important;
+    padding: 9px 11px !important;
+    background: var(--ui-fg-primary) !important;
+    color: var(--ui-bg-surface) !important;
+    font-size: 0.74rem !important;
+    font-weight: 400 !important;
+    line-height: 1.55 !important;
+    border-radius: var(--ui-radius-sm) !important;
+    box-shadow: var(--ui-shadow-lg) !important;
+    white-space: normal !important;
+    text-align: left !important;
+    pointer-events: none !important;
+    z-index: 400 !important;
+}
+
+.ubol-info-tip::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 100% !important;
+    right: 5px !important;
+    border: 5px solid transparent !important;
+    border-top-color: var(--ui-fg-primary) !important;
+}
+
+.ubol-info-btn:hover .ubol-info-tip {
+    display: block !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ubol-info-tip {
+        background: #dcdcdc !important;
+        color: #111 !important;
+    }
+    .ubol-info-tip::after {
+        border-top-color: #dcdcdc !important;
+    }
+}
+
+
+/* ============================================================
    CUSTOM FILTERS TAB
    ============================================================ */
 
