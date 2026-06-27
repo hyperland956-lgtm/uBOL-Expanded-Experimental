@@ -84,6 +84,10 @@ jobs:
           # NSFW Blocker
           curl -sSL https://nsfw-small.oisd.nl/                                           -o cache/oisd-nsfw.txt
 
+          # Comprehensive Tracking Protection (full + optimized, cudios-dev)
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/advanced_tracking_protection.txt"           -o cache/cudios-tracking-full.txt
+          curl -sSL "https://raw.githubusercontent.com/cudios-dev/adfilters/main/output/adblock/advanced_tracking_protection_optimized.txt" -o cache/cudios-tracking-opt.txt
+
       - name: Fetch upstream release notes
         run: |
           node --input-type=module << 'EOF'
